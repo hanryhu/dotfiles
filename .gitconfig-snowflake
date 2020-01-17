@@ -1,0 +1,25 @@
+[filter "lfs"]
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+[user]
+	name = hanryhu
+	email = h.henryhu@gmail.com\n
+[credential]
+	helper = osxkeychain
+[core]
+	editor = emacs
+[alias]
+	lol = log --graph --oneline --decorate --color --all
+	s = status
+	# The final ; inside the function is necessary.
+	rapply = "!f() { git stash apply stash^{/$1}; }; f"
+[merge]
+	conflictstyle = diff3
+	renameLimit = 999999
+[rerere]
+	enabled = true
+	autoupdate = true
+[init]
+	templatedir = /Users/henryhu/.git-templates
