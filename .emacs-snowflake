@@ -1,0 +1,237 @@
+;; Setup
+
+(require 'package)
+(setq package-enable-at-startup nil)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(setq use-package-always-ensure t)
+
+(setq henryhu-packages
+      (list 'browse-kill-ring
+	    'company-flow    
+	    'dashboard			; Depends on Emacs 25.3
+	    'dumb-jump       
+	    'flycheck-flow   
+	    'fzf             
+	    'inf-ruby        
+	    'magit           
+	    'move-text       
+	    'prettier-js     
+	    'rg
+	    'string-inflection
+	    'use-package     
+	    'web-mode        
+	    'yaml-mode))
+(mapcar #'package-install henryhu-packages)
+
+;;; Turn off Folding Mode.  Must do this _before_ loading InfoLab-wide
+;;; common-emacs file.
+(setq folding-auto-start nil)
+
+;;;(add-to-list 'default-frame-alist '(fullscreen . maximized)) ;start emacs maximized
+
+;; Enable mouse support
+(unless window-system
+  (require 'mouse)
+  (xterm-mouse-mode t)
+  (global-set-key [mouse-4] (lambda ()
+                              (interactive)
+                              (scroll-down 1)))
+  (global-set-key [mouse-5] (lambda ()
+                              (interactive)
+                              (scroll-up 1)))
+  (defun track-mouse (e))
+  (setq mouse-sel-mode t)
+)
+
+;; ;;;Set window height
+;; (if (window-system)
+;;   (set-frame-height (selected-frame) 50))
+
+;;; Start in fullscreen
+(defun my-fullscreen ()
+  (interactive)
+  (set-frame-parameter nil 'fullscreen 'fullheight))
+
+(defun my-non-fullscreen ()
+  (interactive)
+  (set-frame-parameter nil 'width 82)
+  (set-frame-parameter nil 'fullscreen 'fullheight))
+
+(defun toggle-fullscreen ()
+  (interactive)
+  (if (eq (frame-parameter nil 'fullscreen) 'maximized)  ;tests if already fullscreened
+      (my-non-fullscreen)
+    (my-fullscreen)))
+
+(global-set-key (kbd "<f11>") 'toggle-fullscreen)
+;;; (toggle-fullscreen)
+;;; (toggle-fullscreen)
+(toggle-fullscreen)
+
+;;;Typed text replaces the selection
+(delete-selection-mode 1)
+
+;;;When point is on a paired character the other is highlighted at no delay
+(setq show-paren-delay 0)
+(show-paren-mode 1)
+(put 'upcase-region 'disabled nil)
+
+;;; EDiffs split with windows on left and right instead of top and bottom
+(setq ediff-split-window-function (quote split-window-horizontally))
+
+;; Insert string for the current time formatted like '2:34 PM'.
+(defun now ()
+  (interactive)                 ; permit invocation in minibuffer
+  (insert (format-time-string "%D %-I:%M %p")))
+
+;; Insert string for today's date nicely formatted in American style,
+;; e.g. Sunday, September 17, 2000.
+(defun today ()
+  (interactive)                 ; permit invocation in minibuffer
+  (insert (format-time-string "%A, %B %e, %Y")))
+
+(global-set-key (kbd "C-j") #'newline-and-indent)
+(tool-bar-mode -1)
+(toggle-frame-maximized)
+
+;; Zenburn theme
+(add-to-list 'custom-theme-load-path "~/zenburn-emacs")
+(load-theme 'zenburn t)
+
+(defun rolldice ()
+  (interactive)
+  (shell-command "echo You rolled a $((1 + RANDOM % 6))\\! &"))
+
+;;;;;;;;;;;; DUMB JUMP CONFIG
+;; (setq dumb-jump-default-project "~/")
+;; (setq dumb-jump-force-searcher 'rg)
+;; ;; Dumb jump mode overwrites C-M-q, just name each useful command
+;; ;; instead.
+;; (global-set-key (kbd "M-.") #'dumb-jump-go)
+;; (global-set-key (kbd "C-.") #'dumb-jump-back)
+;; (global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
+;; (global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
+;;;;;;;;;;;; END DUMB JUMP CONFIG
+
+;; Use FZF to find files by name in the global context
+(global-set-key (kbd "C-c C-f") #'fzf)
+
+;; cycle snake_case, camelCase, etc for ruby
+(require 'string-inflection)
+(global-set-key (kbd "C-c C-u") 'string-inflection-all-cycle)
+
+
+
+;;;;;;;;;;;;;;;;; BEGIN AUTOGEN
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(flycheck-javascript-flow-args nil)
+ '(package-selected-packages
+   (quote
+    (coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+;; Try to get colors to display in M-x shell, e.g., in binding.pry
+(add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
+(add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+
+;; Lint in python
+(load "~/flycheck-pycodestyle.el")
+(add-hook 'python-mode-hook 'flycheck-mode)
+
+;; Keys for indentation
+(global-set-key (kbd "C-.") #'python-indent-shift-right)
+(global-set-key (kbd "C-,") #'python-indent-shift-left)
+
+;; Move line/region with M-up, M-down
+(move-text-default-bindings)
+
+;; Enable super-merge mode better prefix binding
+(setq smerge-command-prefix "\C-cs")
+
+;; Enable line numbers globally
+(global-linum-mode t)
+
+;; Change startup splash screen to be more useful.
+(use-package dashboard
+  :ensure t
+  :diminish dashboard-mode
+  :config
+  (setq dashboard-banner-logo-title "Welcome to emacs!")
+  (setq dashboard-startup-banner "/Users/henryhu/cropped_stata.jpg")
+  (setq dashboard-items '((recents  . 10)
+                          (bookmarks . 10)))
+  (dashboard-setup-startup-hook))
+
+;; Use browse-kill-ring
+(global-set-key "\C-cy" '(lambda ()
+                           (interactive)
+                           (browse-kill-ring)))
+;; Possibly fixes some package-install: Bad Request errors
+;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+
+;; Kill and replace the sexp at point, ending with the last yank at
+;; the top of the kill ring.
+(fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
+(global-set-key "\C-\M-y" 'replace-sexp-at-point)
+
+;; Kill the line at point, change buffer, rg the line, and return
+(fset 'move-line-into-other-buffer
+   [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
+(global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
+
+;; source: http://steve.yegge.googlepages.com/my-dot-emacs-file
+(defun mv-file-and-buffer (new-name)
+  "Renames both current buffer and file it's visiting to NEW-NAME."
+  (interactive "sNew name: ")
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (if (get-buffer new-name)
+          (message "A buffer named '%s' already exists!" new-name)
+        (progn
+          (rename-file filename new-name 1)
+          (rename-buffer new-name)
+          (set-visited-file-name new-name)
+          (set-buffer-modified-p nil))))))
+
+;; Jump forward to the next argument in a function or item in a list,
+;; and put it on a new line.  To re-indent a function, use C-M-j till
+;; you see the end-of-list, then use C-M-h once.  If a comma is
+;; already present at the end of the list, then use C-M-j instead of
+;; C-M-h at the end of the list.
+(fset 'newline-at-next-argument-or-item
+   [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
+(global-set-key "\C-\M-j" 'newline-at-next-argument-or-item)
+(fset 'newline-at-arglist-or-list-end
+   [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
+(global-set-key "\C-\M-h" 'newline-at-arglist-or-list-end)
+
+;; Treat word_word or wordWord as word boundaries
+(subword-mode 1)
+
+;; Open dired buffer for home directory on spratly
+(defun spr ()
+  (interactive)
+  (dired "/ssh:henryhu@spratly.csail.mit.edu:~/"))
+
+;; Open shell in same window, even on emacs 26
+;; https://github.com/syl20bnr/spacemacs/issues/6820
+(push (cons "\\*shell\\*" display-buffer--same-window-action)
+      display-buffer-alist)
+
