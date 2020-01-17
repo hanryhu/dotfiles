@@ -1,0 +1,214 @@
+######## TERMINAL CONFIG
+#BEGIN better autocomplete for sudo
+complete -cf sudo
+#END better autocomplete for sudo
+# BEGIN custom code to set prompt
+export PS1="\w$ "
+# End custom code to set prompt
+
+
+######## USEFUL ALIASES
+# # BEGIN set-up Athena
+# alias a="add stata scala git"
+# # END set-up Athena
+# BEGIN 6.035
+alias dcf-scan="./run.sh --target=scan"
+alias dcf-parse="./run.sh --target=parse"
+alias dcf-inter="./run.sh --target=inter"
+alias dcf-cfg="./run.sh --target=cfg"
+function dcf-cfg-and-print () 
+{ 
+    ./run.sh --target=cfg $1;
+    cat $1
+}
+alias dcf-gen="./run.sh --target=assembly -o temp.s"
+function dcf-exec ()
+{
+    ./run.sh --target=assembly -o temp.s $1 &&
+	echo 'assembly at temp.s' &&
+	gcc -no-pie temp.s -o temp &&
+	echo 'exec at temp' &&
+	./temp > temp.out &&
+	echo 'output at temp.out';
+}
+# END 6.035
+# better which
+alias which=type
+# end better which
+# better mv
+alias mv-mv=/bin/mv
+function maybe-git-mv ()
+{
+    local repo=$(git rev-parse --show-toplevel 2> /dev/null)
+    if [[ -e "${repo}" ]]; then
+	echo "Using git mv -- if you want normal mv use mv-mv";
+	git mv "$@";
+    else
+	mv-mv "$@";
+    fi
+}
+alias mv=maybe-git-mv
+#end better mv
+# better rm
+alias rm-rm=/bin/rm
+function maybe-git-rm ()
+{
+    local repo=$(git rev-parse --show-toplevel 2> /dev/null)
+    if [[ -e "${repo}" ]]; then
+	echo "Using git rm -- if you want normal rm use rm-rm";
+	git rm "$@";
+    else
+	rm-rm "$@";
+    fi
+}
+alias rm=maybe-git-rm
+#end better rm
+# Custom code to switch scrolling
+BASHRC_TOGGLESCRIPT="osascript -e 'tell application \"System Preferences\"
+  reveal anchor \"trackpadTab\" of pane id \"com.apple.preference.trackpad\"
+end tell
+
+tell application \"System Events\" to tell process \"System Preferences\"
+    click radio button 2 of tab group 1 of window 1
+    click checkbox 1 of tab group 1 of window 1
+end tell
+
+quit application \"System Preferences\"'"
+alias natural=$BASHRC_TOGGLESCRIPT
+alias n=natural
+# End custom code to toggle scrolling
+#BEGIN rb
+alias rb="irb --simple-prompt"
+#END rb
+#BEGIN lsl
+alias lsl='find . -ls -name "*~" -prune'
+#END lsl
+#BEGIN start minecraft server
+alias mc-start='exec java -Xms1G -Xmx1G -jar server.jar nogui;'
+#END start minecraft server
+#BEGIN start google chrome
+alias chrome='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
+#END start google chrome
+#BEGIN whoami aliases
+alias whoami-test='nosetests -v ~/whoami/tests && whoami-lint'
+alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501'
+alias whoami-run='python ~/whoami/scripts/run.py'
+alias astro-test='nosetests -v ~/astroparse/tests && astro-lint'
+alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501'
+alias astro-run='python ~/astroparse/ilearn.py'
+elint () {
+    # whoami lint
+    lint_files=$(whoami-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	emacs $@ $lint_files
+    else
+	echo "Nothing to lint in whoami! Yay :)"
+    fi
+    # astroparse lint
+    lint_files=$(astro-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	emacs $@ $lint_files
+    else
+	echo "Nothing to lint in astroparse! Yay :)"
+    fi
+}
+autolint () {
+    # whoami lint
+    lint_files=$(whoami-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	autopep8 --in-place --ignore=E501 $@ $lint_files
+    else
+	echo "Nothing to lint in whoami! Yay :)"
+    fi
+    # astroparse lint
+    lint_files=$(astro-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	autopep8 --in-place --ignore=E501 $@ $lint_files
+    else
+	echo "Nothing to lint in astroparse! Yay :)"
+    fi
+}
+#END whoami aliases
+#BEGIN fix muted audio macOSX
+alias fix-audio="sudo killall coreaudiod"
+#END fix muted audio maxOSX
+
+########### GIT TOOLS
+#BEGIN git auto-complete (https://apple.stackexchange.com/questions/55875/git-auto-complete-for-branches-at-the-command-line)
+test -f ~/.git-completion.bash && . $_
+#END git auto-complete
+#BEGIN use emacs to open all affected files in a git diff
+ediff () {
+    emacs `git diff --name-only $@ | paste -sd " " -`
+}
+#END use emacs to open all affected files in a git diff
+#BEGIN analyze-history
+analyze-history () {
+    history|awk '{print $2, $3}'|awk 'BEGIN {FS="|"} {print $1}'|sort|uniq -c|sort -nr|less
+}
+#END analyze-history
+#BEGIN git aliases
+alias gs='git status'
+alias go='git checkout'
+#END git aliases
+
+
+#### ACCESSING REMOTE FILE SYSTEMS
+#BEGIN snowflake scp
+function sf-scp () {
+    if [[ -z $2 ]] ; then
+	scp henryhu@snowflake.myddns.me:$1 $1;
+    else
+	scp henryhu@snowflake.myddns.me:$1 $2;
+    fi
+}
+#END snowflake scp
+#BEGIN infolab ssh
+function infolab() { eval "ssh -X henryhu@$1.csail.mit.edu" ;}
+alias spr='infolab spratly'
+alias wal='infolab wallis'
+#END infolab ssh
+#BEGIN mount file systems ssh
+alias mntbaker="umount -f ~/baker; sshfs henryhu@baker:/usr/local/share/baker/staging ~/baker"
+alias mntspratly="umount -f ~/spratly; sshfs henryhu@spratly.csail.mit.edu ~/spratly"
+#END mount file systems ssh
+#BEGIN check if ssh server is running
+# If output is not empty, then ssh server is active.
+alias check-ssh="ps -A | grep sshd"
+#END check if ssh server is running
+#BEGIN Check my public IP
+alias check-ip="dig +short myip.opendns.com @resolver1.opendns.com"
+#END Check my public IP
+#BEGIN instance var slushy -- computer domain
+slushy="slushy.myddns.me"
+#END instance var slushy -- computer domain
+#BEGIN Shortcut for athena
+function athena() {
+    echo "ssh -X athena.dialup.mit.edu;"
+    ssh -X athena.dialup.mit.edu;
+}
+alias a=athena
+#END Shortcut for athena
+
+#  Setting PATH for Python 3.6
+# The original version is saved in .bash_profile.pysave
+PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
+export PATH
+
+# Use GNU Grep
+export PATH="/usr/local/opt/grep/libexec/gnubin:$PATH"
+
+PATH="/Applications/Julia-1.1.app/Contents/Resources/julia/bin:${PATH}"
+export PATH
+
+#curl -s -L http://bit.ly/10hA8iC | bash
+#alias emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
+
+# Python virtualenvs
+export WORKON_HOME=~/.virtualenvs
+export VIRTUALENVWRAPPER_PYTHON=/anaconda3/bin/python3.7;
+source /anaconda3/bin/virtualenvwrapper.sh
+# END Python virtualenvs
+
+# added by travis gem
+[ -f /Users/henryhu/.travis/travis.sh ] && source /Users/henryhu/.travis/travis.sh
