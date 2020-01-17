@@ -1,0 +1,88 @@
+######## TERMINAL CONFIG
+#BEGIN better autocomplete for sudo
+complete -cf sudo
+#END better autocomplete for sudo
+# BEGIN custom code to set prompt
+export PS1="\w$ "
+# End custom code to set prompt
+
+# get common InfoLab settings:
+  source ~start/common-bashrc
+  # THIS COMMENT LINE IS IMPORTANT - make sure to copy this too.
+  function infolab() { eval "ssh -X henryhu@$1.csail.mit.edu" ;}
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=3000
+
+
+######## USEFUL ALIASES
+# better which
+alias which=type
+# end better which
+# Custom code to switch scrolling
+BASHRC_TOGGLESCRIPT="osascript -e 'tell application \"System Preferences\"
+  reveal anchor \"trackpadTab\" of pane id \"com.apple.preference.trackpad\"
+end tell
+
+tell application \"System Events\" to tell process \"System Preferences\"
+    click radio button 2 of tab group 1 of window 1
+    click checkbox 1 of tab group 1 of window 1
+end tell
+
+quit application \"System Preferences\"'"
+alias natural=$BASHRC_TOGGLESCRIPT
+alias n=natural
+# End custom code to toggle scrolling
+#BEGIN rb
+alias rb="irb --simple-prompt"
+#END rb
+#BEGIN lsl
+alias lsl='find . -ls -name "*~" -prune'
+#END lsl
+#BEGIN start minecraft server
+alias mc-start='exec java -Xms1G -Xmx1G -jar server.jar nogui;'
+#END start minecraft server
+########### GIT TOOLS
+#BEGIN git auto-complete
+test -f ~/.git-completion.bash && . $_
+#END git auto-complete
+#BEGIN use emacs to open all affected files in a git diff
+ediff () {
+    emacs `git diff --name-only $@ | paste -sd " " -`
+}
+#END use emacs to open all affected files in a git diff
+#BEGIN analyze-history
+analyze-history () {
+    history|awk '{print $2, $3}'|awk 'BEGIN {FS="|"} {print $1}'|sort|uniq -c|sort -nr|less
+}
+#END analyze-history
+#BEGIN git aliases
+alias gs='git status'
+alias go='git checkout'
+#END git aliases
+#BEGIN pbcopy for linux
+alias pbcopy='xclip -selection clipboard'
+alias pbpaste='xclip -selection clipboard -o'
+#END pbcopy for linux
+#BEGIN print file to betty
+alias print-betty='lpoptions -d betty && lp'
+#END print file to betty
+
+#This comment line is important toot
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+if [ -f "/data/infolab/workspaces/henryhu/anaconda3/etc/profile.d/conda.sh" ]; then
+    . "/data/infolab/workspaces/henryhu/anaconda3/etc/profile.d/conda.sh"
+else
+    export PATH="/data/infolab/workspaces/henryhu/anaconda3/bin:$PATH"
+fi
+# <<< conda initialize <<<
+
+
+# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
+export PATH="$PATH:$HOME/.rvm/bin"
+
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" # Load RVM into a shell session *as a function*
+
+# added by travis gem
+[ -f /afs/csail.mit.edu/u/h/henryhu/.travis/travis.sh ] && source /afs/csail.mit.edu/u/h/henryhu/.travis/travis.sh
