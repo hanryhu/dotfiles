@@ -1,5 +1,6 @@
-;; Setup
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Package setup                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require 'package)
 (setq package-enable-at-startup nil)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -28,6 +29,18 @@
 	    'web-mode        
 	    'yaml-mode))
 (mapcar #'package-install henryhu-packages)
+
+;; Zenburn theme
+(add-to-list 'custom-theme-load-path "~/.emacs.d/zenburn-emacs")
+(load-theme 'zenburn t)
+
+;; Possibly fixes some package-install: Bad Request errors
+;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+
+;; End package setup
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Window system settings                                                 ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Turn off Folding Mode.  Must do this _before_ loading InfoLab-wide
 ;;; common-emacs file.
@@ -85,83 +98,8 @@
 ;;; EDiffs split with windows on left and right instead of top and bottom
 (setq ediff-split-window-function (quote split-window-horizontally))
 
-;; Insert string for the current time formatted like '2:34 PM'.
-(defun now ()
-  (interactive)                 ; permit invocation in minibuffer
-  (insert (format-time-string "%D %-I:%M %p")))
-
-;; Insert string for today's date nicely formatted in American style,
-;; e.g. Sunday, September 17, 2000.
-(defun today ()
-  (interactive)                 ; permit invocation in minibuffer
-  (insert (format-time-string "%A, %B %e, %Y")))
-
-(global-set-key (kbd "C-j") #'newline-and-indent)
 (tool-bar-mode -1)
 (toggle-frame-maximized)
-
-;; Zenburn theme
-(add-to-list 'custom-theme-load-path "~/zenburn-emacs")
-(load-theme 'zenburn t)
-
-(defun rolldice ()
-  (interactive)
-  (shell-command "echo You rolled a $((1 + RANDOM % 6))\\! &"))
-
-;;;;;;;;;;;; DUMB JUMP CONFIG
-;; (setq dumb-jump-default-project "~/")
-;; (setq dumb-jump-force-searcher 'rg)
-;; ;; Dumb jump mode overwrites C-M-q, just name each useful command
-;; ;; instead.
-;; (global-set-key (kbd "M-.") #'dumb-jump-go)
-;; (global-set-key (kbd "C-.") #'dumb-jump-back)
-;; (global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
-;; (global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
-;;;;;;;;;;;; END DUMB JUMP CONFIG
-
-;; Use FZF to find files by name in the global context
-(global-set-key (kbd "C-c C-f") #'fzf)
-
-;; cycle snake_case, camelCase, etc for ruby
-(require 'string-inflection)
-(global-set-key (kbd "C-c C-u") 'string-inflection-all-cycle)
-
-
-
-;;;;;;;;;;;;;;;;; BEGIN AUTOGEN
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(flycheck-javascript-flow-args nil)
- '(package-selected-packages
-   (quote
-    (coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
-
-;; Try to get colors to display in M-x shell, e.g., in binding.pry
-(add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
-(add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
-
-;; Lint in python
-(load "~/flycheck-pycodestyle.el")
-(add-hook 'python-mode-hook 'flycheck-mode)
-
-;; Keys for indentation
-(global-set-key (kbd "C-.") #'python-indent-shift-right)
-(global-set-key (kbd "C-,") #'python-indent-shift-left)
-
-;; Move line/region with M-up, M-down
-(move-text-default-bindings)
-
-;; Enable super-merge mode better prefix binding
-(setq smerge-command-prefix "\C-cs")
 
 ;; Enable line numbers globally
 (global-linum-mode t)
@@ -177,22 +115,42 @@
                           (bookmarks . 10)))
   (dashboard-setup-startup-hook))
 
+;; Move line/region with M-up, M-down
+(move-text-default-bindings)
+
+;; ;; Try to get colors to display in M-x shell, e.g., in binding.pry
+;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
+;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+
+;; End Window system settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Common commands                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Insert string for the current time formatted like '2:34 PM'.
+(defun now ()
+  (interactive)                 ; permit invocation in minibuffer
+  (insert (format-time-string "%D %-I:%M %p")))
+
+;; Insert string for today's date nicely formatted in American style,
+;; e.g. Sunday, September 17, 2000.
+(defun today ()
+  (interactive)                 ; permit invocation in minibuffer
+  (insert (format-time-string "%A, %B %e, %Y")))
+
+(defun rolldice ()
+  (interactive)
+  (shell-command "echo You rolled a $((1 + RANDOM % 6))\\! &"))
+
+;; Enable super-merge mode better prefix binding
+(setq smerge-command-prefix "\C-cs")
+
+(global-set-key (kbd "C-j") #'newline-and-indent)
+
 ;; Use browse-kill-ring
 (global-set-key "\C-cy" '(lambda ()
                            (interactive)
                            (browse-kill-ring)))
-;; Possibly fixes some package-install: Bad Request errors
-;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
-
-;; Kill and replace the sexp at point, ending with the last yank at
-;; the top of the kill ring.
-(fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
-(global-set-key "\C-\M-y" 'replace-sexp-at-point)
-
-;; Kill the line at point, change buffer, rg the line, and return
-(fset 'move-line-into-other-buffer
-   [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
-(global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
 
 ;; source: http://steve.yegge.googlepages.com/my-dot-emacs-file
 (defun mv-file-and-buffer (new-name)
@@ -222,16 +180,144 @@
    [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
 (global-set-key "\C-\M-h" 'newline-at-arglist-or-list-end)
 
-;; Treat word_word or wordWord as word boundaries
-(subword-mode 1)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Full width comment box                                                 ;;
+;; from http://irreal.org/blog/?p=374                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun bjm-comment-box (b e)
+  (interactive "r")
+  (let ((e (copy-marker e t)))
+    (goto-char b)
+    (end-of-line)
+    (insert-char ?  (- fill-column (current-column)))
+    (comment-box b e 1)
+    (goto-char e)
+    (set-marker e nil)))
 
-;; Open dired buffer for home directory on spratly
+(global-set-key (kbd "C-c b b") 'bjm-comment-box)
+
+;; Eval-region similar to eval-sexp (overwriting find-file-read-only)
+(global-set-key (kbd "C-x C-r") 'eval-region)
+
+;; End common commands
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Stripe specific settings                                               ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;; DUMB JUMP CONFIG
+;; (setq dumb-jump-default-project "~/")
+;; (setq dumb-jump-force-searcher 'rg)
+;; ;; Dumb jump mode overwrites C-M-q, just name each useful command
+;; ;; instead.
+;; (global-set-key (kbd "M-.") #'dumb-jump-go)
+;; (global-set-key (kbd "C-.") #'dumb-jump-back)
+;; (global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
+;; (global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
+;;;;;;;;;;;; END DUMB JUMP CONFIG
+
+;; Use FZF to find files by name in the global context
+(global-set-key (kbd "C-c C-f") #'fzf)
+
+;; cycle snake_case, camelCase, etc for ruby
+(require 'string-inflection)
+(global-set-key (kbd "C-c C-u") 'string-inflection-all-cycle)
+
+;; ;; Kill and replace the sexp at point, ending with the last yank at
+;; ;; the top of the kill ring.
+;; (fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
+;; (global-set-key "\C-\M-y" 'replace-sexp-at-point)
+
+;; Kill the line at point, change buffer, rg the line, and return
+(fset 'move-line-into-other-buffer
+   [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
+(global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
+
+;; End Stripe specific settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; BEGIN AUTOGEN                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(flycheck-javascript-flow-args nil)
+ '(package-selected-packages
+   (quote
+    (gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+
+;; end Autogen
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Python settings                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Lint in python
+(load "~/.emacs.d/flycheck-pycodestyle.el")
+(add-hook 'python-mode-hook 'flycheck-mode)
+
+;; Keys for indentation
+(global-set-key (kbd "C-.") #'python-indent-shift-right)
+(global-set-key (kbd "C-,") #'python-indent-shift-left)
+
+;; Treat word_word or wordWord as word boundaries
+(subword-mode +1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+
+;; End Python settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tramp configuration                                                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq tramp-auto-save-directory "/tmp")
+
+;; Speed up Tramp (https://emacs.stackexchange.com/a/37855)
+(setq remote-file-name-inhibit-cache nil)
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+                    vc-ignore-dir-regexp
+                    tramp-file-name-regexp))
+(setq tramp-verbose 1)
+;; Other Tramp perf optimizations (git:michaelsilver/emacs-config)
+(setq tramp-completion-reread-directory-timeout nil)
+(customize-set-variable 'tramp-use-ssh-controlmaster-options nil)
+
 (defun spr ()
   (interactive)
-  (dired "/ssh:henryhu@spratly.csail.mit.edu:~/"))
+  (dired "/ssh:henryhu@spratly.csail.mit.edu:~/")
+  (infolab-ssh "spratly"))
+(defun wal ()
+  (interactive)
+  (infolab-ssh "wallis"))
 
+;; Open dired buffer for home directory on an infolab host machine
+(defun infolab-ssh (host)
+  (interactive "sHostname: ")
+  (let ((infolab-hostname (concatenate 'string host ".csail.mit.edu")))
+    (ssh infolab-hostname)))
+
+(defun ssh (host)
+  (interactive "sFull Hostname: ")
+  (dired (concatenate 'string
+		      "/ssh:henryhu@"
+		      host
+		      ":~/"))
+  ;; Flycheck causes saves to freeze in Tramp
+  ;; (https://github.com/flycheck/flycheck/issues/54)
+  (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
+
+;; End tramp configuration
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; MacOS specific configuration                                           ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Open shell in same window, even on emacs 26
 ;; https://github.com/syl20bnr/spacemacs/issues/6820
 (push (cons "\\*shell\\*" display-buffer--same-window-action)
       display-buffer-alist)
 
+;; End MacOS specific configuration
