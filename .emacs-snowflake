@@ -60,7 +60,7 @@
                               (scroll-up 1)))
   (defun track-mouse (e))
   (setq mouse-sel-mode t)
-)
+  )
 
 ;; ;;;Set window height
 ;; (if (window-system)
@@ -129,13 +129,13 @@
 
 ;; Insert string for the current time formatted like '2:34 PM'.
 (defun now ()
-  (interactive)                 ; permit invocation in minibuffer
+  (interactive)			     ; permit invocation in minibuffer
   (insert (format-time-string "%D %-I:%M %p")))
 
 ;; Insert string for today's date nicely formatted in American style,
 ;; e.g. Sunday, September 17, 2000.
 (defun today ()
-  (interactive)                 ; permit invocation in minibuffer
+  (interactive)			     ; permit invocation in minibuffer
   (insert (format-time-string "%A, %B %e, %Y")))
 
 (defun rolldice ()
@@ -174,10 +174,10 @@
 ;; already present at the end of the list, then use C-M-j instead of
 ;; C-M-h at the end of the list.
 (fset 'newline-at-next-argument-or-item
-   [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
+      [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
 (global-set-key "\C-\M-j" 'newline-at-next-argument-or-item)
 (fset 'newline-at-arglist-or-list-end
-   [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
+      [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
 (global-set-key "\C-\M-h" 'newline-at-arglist-or-list-end)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -229,7 +229,7 @@
 
 ;; Kill the line at point, change buffer, rg the line, and return
 (fset 'move-line-into-other-buffer
-   [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
+      [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
 (global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
 
 ;; End Stripe specific settings
@@ -280,8 +280,8 @@
 (setq remote-file-name-inhibit-cache nil)
 (setq vc-ignore-dir-regexp
       (format "%s\\|%s"
-                    vc-ignore-dir-regexp
-                    tramp-file-name-regexp))
+              vc-ignore-dir-regexp
+              tramp-file-name-regexp))
 (setq tramp-verbose 1)
 ;; Other Tramp perf optimizations (git:michaelsilver/emacs-config)
 (setq tramp-completion-reread-directory-timeout nil)
@@ -298,15 +298,12 @@
 ;; Open dired buffer for home directory on an infolab host machine
 (defun infolab-ssh (host)
   (interactive "sHostname: ")
-  (let ((infolab-hostname (concatenate 'string host ".csail.mit.edu")))
+  (let ((infolab-hostname (concat host ".csail.mit.edu")))
     (ssh infolab-hostname)))
 
 (defun ssh (host)
   (interactive "sFull Hostname: ")
-  (dired (concatenate 'string
-		      "/ssh:henryhu@"
-		      host
-		      ":~/"))
+  (dired (concat "/ssh:henryhu@" host ":~/"))
   ;; Flycheck causes saves to freeze in Tramp
   ;; (https://github.com/flycheck/flycheck/issues/54)
   (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
