@@ -172,6 +172,9 @@ alias wal='infolab wallis'
 alias mntbaker="umount -f ~/baker; sshfs henryhu@baker:/usr/local/share/baker/staging ~/baker"
 alias mntspratly="umount -f ~/spratly; sshfs henryhu@spratly.csail.mit.edu ~/spratly"
 #END mount file systems ssh
+#BEGIN unmount icecube from snowflake
+alias umnticecube="diskutil unmount /Volumes/Extreme\ SSD/;"
+#END unmount icecube from snowflake
 #BEGIN check if ssh server is running
 # If output is not empty, then ssh server is active.
 alias check-ssh="ps -A | grep sshd"
@@ -182,6 +185,9 @@ alias check-ip="dig +short myip.opendns.com @resolver1.opendns.com"
 #BEGIN instance var slushy -- computer domain
 slushy="slushy.myddns.me"
 #END instance var slushy -- computer domain
+#BEGIN slushy ssh
+alias slu="ssh -X slushy.myddns.me"
+#END slushy ssh
 #BEGIN Shortcut for athena
 function athena() {
     echo "ssh -X athena.dialup.mit.edu;"
