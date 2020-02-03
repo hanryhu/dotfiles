@@ -113,7 +113,7 @@
   (setq dashboard-startup-banner "/Users/henryhu/cropped_stata.jpg")
   (setq dashboard-items '((recents  . 10)
                           (bookmarks . 10)))
-  (dashboard-setup-startup-hook))
+  (dashboard-setup-startup-hook))	; Depends on emacs 25.3
 
 ;; Move line/region with M-up, M-down
 (move-text-default-bindings)
@@ -199,6 +199,31 @@
 ;; Eval-region similar to eval-sexp (overwriting find-file-read-only)
 (global-set-key (kbd "C-x C-r") 'eval-region)
 
+;; Write a commit message in emacs.  To exit, do C-c C-c.  Plays well
+;; with Tramp.
+(global-set-key (kbd "C-c c") 'magit-commit-create)
+
+;; https://www.emacswiki.org/emacs/BuildTags#toc4
+(defun create-tags (dir-name glob)
+  "Create tags file."
+  (interactive "DDirectory: \nsName glob: ")
+  (eshell-command 
+   (format "find %s -type f -name \"%s\" | etags -" dir-name glob)))
+
+;; With a list of debug statements like backend-types.log open in one
+;; buffer and a whoami run.py shell in another buffer, use
+;; copy-paste-whoami-input-line to format the current line's sentence
+;; and subjects into the Whoami shell, and move to the next line.
+;; After doing so, without moving point, use
+;; investigate-whoami-input-without-subject-substitutions to submit
+;; the same query without the subject substitutions.
+(fset 'copy-paste-whoami-input-line
+      [?\C-s ?\" return ?\C-  ?\C-s ?\( ?\[ return ?\C-b ?\C-b ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?  ?| ?| ?  ?\C-x ?o ?\C-s ?\( ?\[ return ?\C-  ?\C-s ?\] ?\) return ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?\C-p ?\C-p ?\C-p ?\C-\M-% ?\' ?, ?  ?\' return ?& ?& return ?! ?\C-p ?\C-p ?\C-p ?\C-\M-% ?| ?| ?  ?\' return ?| ?| ?  return ?! ?\M-> backspace return ?\C-x ?o ?\C-n ?\C-a])
+(fset 'investigate-whoami-input-without-subject-substitutions
+      [?\C-x ?o ?\C-r ?| ?| ?\C-r return ?\C-  ?\C-r ?> ?  return ?\C-f ?\C-f ?\M-w ?\M-> ?\C-y return ?\C-x ?o])
+(global-set-key (kbd "C-c C-w") 'copy-paste-whoami-input-line)
+(global-set-key (kbd "C-c C-s") 'investigate-whoami-input-without-subject-substitutions)
+
 ;; End common commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Stripe specific settings                                               ;;
@@ -234,7 +259,7 @@
 
 ;; End Stripe specific settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; BEGIN AUTOGEN                                                          ;;
+;; BEGIN AUTOGEN (dashboard depends on Emacs 25.3)                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -287,6 +312,7 @@
 (setq tramp-completion-reread-directory-timeout nil)
 (customize-set-variable 'tramp-use-ssh-controlmaster-options nil)
 
+;; Open dired buffer for home directory on my favorite computers
 (defun spr ()
   (interactive)
   (dired "/ssh:henryhu@spratly.csail.mit.edu:~/")
@@ -294,8 +320,16 @@
 (defun wal ()
   (interactive)
   (infolab-ssh "wallis"))
+(defun sno ()
+  (interactive)
+  (ssh "snowflake.myddns.me"))
+(defun slu ()
+  (interactive)
+  (ssh "slushy.myddns.me"))
+(defun ice ()
+  (interactive)
+  (ssh "slushy.myddns.me" "/media/henryhu/icecube"))
 
-;; Open dired buffer for home directory on an infolab host machine
 (defun infolab-ssh (host)
   (interactive "sHostname: ")
   (let ((infolab-hostname (concat host ".csail.mit.edu")))
