@@ -315,29 +315,35 @@
 ;; Open dired buffer for home directory on my favorite computers
 (defun spr ()
   (interactive)
-  (dired "/ssh:henryhu@spratly.csail.mit.edu:~/")
   (infolab-ssh "spratly"))
 (defun wal ()
   (interactive)
   (infolab-ssh "wallis"))
 (defun sno ()
   (interactive)
-  (ssh "snowflake.myddns.me"))
+  (ssh "snowflake.myddns.me" "~"))
 (defun slu ()
   (interactive)
-  (ssh "slushy.myddns.me"))
+  (ssh "slushy.myddns.me" "~"))
 (defun ice ()
   (interactive)
   (ssh "slushy.myddns.me" "/media/henryhu/icecube"))
 
+;; Athena dialup, which requires two-factor authentication.  First
+;; passcode prompt: type in MIT passcode.  Second passcode prompt:
+;; type "1" for push, "2" for call, and "3" for SMS.
+(defun ath ()
+  (interactive)
+  (ssh "athena.dialup.mit.edu" "~"))
+
 (defun infolab-ssh (host)
   (interactive "sHostname: ")
   (let ((infolab-hostname (concat host ".csail.mit.edu")))
-    (ssh infolab-hostname)))
+    (ssh infolab-hostname "~")))
 
-(defun ssh (host)
-  (interactive "sFull Hostname: ")
-  (dired (concat "/ssh:henryhu@" host ":~/"))
+(defun ssh (host dir)
+  (interactive "sFull Hostname: \nsDirectory: ")
+  (dired (concat "/ssh:henryhu@" host ":" dir))
   ;; Flycheck causes saves to freeze in Tramp
   ;; (https://github.com/flycheck/flycheck/issues/54)
   (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
