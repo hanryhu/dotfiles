@@ -173,7 +173,7 @@ alias mntbaker="umount -f ~/baker; sshfs henryhu@baker:/usr/local/share/baker/st
 alias mntspratly="umount -f ~/spratly; sshfs henryhu@spratly.csail.mit.edu ~/spratly"
 #END mount file systems ssh
 #BEGIN unmount icecube from snowflake
-alias umnticecube="diskutil unmount /Volumes/Extreme\ SSD/;"
+alias umnticecube="diskutil unmount /Volumes/Extreme\ SSD/; diskutil unmount /Volumes/icecube/;"
 #END unmount icecube from snowflake
 #BEGIN check if ssh server is running
 # If output is not empty, then ssh server is active.
