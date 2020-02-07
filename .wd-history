@@ -1,0 +1,18 @@
+#!/bin/bash
+# This file should be named ~/.wd-history
+
+# Set the working directory
+function set-wd () {
+    # Append an alias to the current file
+    if [ ! $# == 0 ] ; then
+	echo "alias wd=\"cd "$1"\"" >> ~/.wd-history
+    else
+	echo "alias wd=\"cd "$(pwd)"\"" >> ~/.wd-history
+    fi
+    
+    # Update the `wd` alias.
+    source ~/.wd-history
+}
+
+# Begin working directory history
+# These should be periodically cleaned manually.

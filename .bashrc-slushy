@@ -151,3 +151,5 @@ export PATH
 
 #curl -s -L http://bit.ly/10hA8iC | bash
 #alias emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
+
+source ~/.wd-history

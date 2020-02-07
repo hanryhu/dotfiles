@@ -218,3 +218,5 @@ source /anaconda3/bin/virtualenvwrapper.sh
 
 # added by travis gem
 [ -f /Users/henryhu/.travis/travis.sh ] && source /Users/henryhu/.travis/travis.sh
+
+source ~/.wd-history

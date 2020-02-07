@@ -86,3 +86,5 @@ export PATH="$PATH:$HOME/.rvm/bin"
 
 # added by travis gem
 [ -f /afs/csail.mit.edu/u/h/henryhu/.travis/travis.sh ] && source /afs/csail.mit.edu/u/h/henryhu/.travis/travis.sh
+
+source ~/.wd-history
