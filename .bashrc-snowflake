@@ -77,6 +77,11 @@ quit application \"System Preferences\"'"
 alias natural=$BASHRC_TOGGLESCRIPT
 alias n=natural
 # End custom code to toggle scrolling
+# Begin ls color setup
+alias ls='ls -GpF'
+alias ll='ls -lh'
+export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+# End ls color setup
 #BEGIN rb
 alias rb="irb --simple-prompt"
 #END rb
@@ -149,7 +154,6 @@ analyze-history () {
 #END analyze-history
 #BEGIN git aliases
 alias gs='git status'
-alias go='git checkout'
 #END git aliases
 
 
@@ -186,7 +190,9 @@ alias check-ip="dig +short myip.opendns.com @resolver1.opendns.com"
 slushy="slushy.myddns.me"
 #END instance var slushy -- computer domain
 #BEGIN slushy ssh
-alias slu="ssh -X slushy.myddns.me"
+alias slu="ssh -X henryhu@slushy.myddns.me"
+alias sno="ssh -X henryhu@snowflake.myddns.me"
+alias flo="ssh -X racecar@flocon.myddns.me"
 #END slushy ssh
 #BEGIN Shortcut for athena
 function athena() {
