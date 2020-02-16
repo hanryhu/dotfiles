@@ -1,0 +1,349 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Package setup                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'package)
+(setq package-enable-at-startup nil)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(setq use-package-always-ensure t)
+
+(setq henryhu-packages
+      (list 'browse-kill-ring
+	    'company-flow    
+	    'dumb-jump       
+	    'flycheck-flow   
+	    'fzf             
+	    'prettier-js     
+	    'string-inflection
+	    'use-package     
+	    'web-mode        
+	    'yaml-mode))
+(mapcar #'package-install henryhu-packages)
+
+;; Zenburn theme
+(add-to-list 'custom-theme-load-path "~/.emacs.d/zenburn-emacs")
+(load-theme 'zenburn t)
+
+;; Possibly fixes some package-install: Bad Request errors
+;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+
+; roslaunch highlighting
+(add-to-list 'auto-mode-alist '("\\.launch$" . xml-mode))
+
+;; End package setup
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Window system settings                                                 ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Turn off Folding Mode.  Must do this _before_ loading InfoLab-wide
+;;; common-emacs file.
+(setq folding-auto-start nil)
+
+;;;(add-to-list 'default-frame-alist '(fullscreen . maximized)) ;start emacs maximized
+
+;; Enable mouse support
+(unless window-system
+  (require 'mouse)
+  (xterm-mouse-mode t)
+  (global-set-key [mouse-4] (lambda ()
+                              (interactive)
+                              (scroll-down 1)))
+  (global-set-key [mouse-5] (lambda ()
+                              (interactive)
+                              (scroll-up 1)))
+  (defun track-mouse (e))
+  (setq mouse-sel-mode t)
+  )
+
+;; ;;;Set window height
+;; (if (window-system)
+;;   (set-frame-height (selected-frame) 50))
+
+;;; Start in fullscreen
+(defun my-fullscreen ()
+  (interactive)
+  (set-frame-parameter nil 'fullscreen 'fullheight))
+
+(defun my-non-fullscreen ()
+  (interactive)
+  (set-frame-parameter nil 'width 82)
+  (set-frame-parameter nil 'fullscreen 'fullheight))
+
+(defun toggle-fullscreen ()
+  (interactive)
+  (if (eq (frame-parameter nil 'fullscreen) 'maximized)  ;tests if already fullscreened
+      (my-non-fullscreen)
+    (my-fullscreen)))
+
+(global-set-key (kbd "<f11>") 'toggle-fullscreen)
+;;; (toggle-fullscreen)
+;;; (toggle-fullscreen)
+(toggle-fullscreen)
+
+;;;Typed text replaces the selection
+(delete-selection-mode 1)
+
+;;;When point is on a paired character the other is highlighted at no delay
+(setq show-paren-delay 0)
+(show-paren-mode 1)
+(put 'upcase-region 'disabled nil)
+
+;;; EDiffs split with windows on left and right instead of top and bottom
+(setq ediff-split-window-function (quote split-window-horizontally))
+
+(tool-bar-mode -1)
+(toggle-frame-maximized)
+
+;; Enable line numbers globally
+(global-linum-mode t)
+
+;; Change startup splash screen to be more useful.
+
+;; Move line/region with M-up, M-down
+(move-text-default-bindings)
+
+;; ;; Try to get colors to display in M-x shell, e.g., in binding.pry
+;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
+;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+
+;; End Window system settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Common commands                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Insert string for the current time formatted like '2:34 PM'.
+(defun now ()
+  (interactive)			     ; permit invocation in minibuffer
+  (insert (format-time-string "%D %-I:%M %p")))
+
+;; Insert string for today's date nicely formatted in American style,
+;; e.g. Sunday, September 17, 2000.
+(defun today ()
+  (interactive)			     ; permit invocation in minibuffer
+  (insert (format-time-string "%A, %B %e, %Y")))
+
+(defun rolldice ()
+  (interactive)
+  (shell-command "echo You rolled a $((1 + RANDOM % 6))\\! &"))
+
+;; Enable super-merge mode better prefix binding
+(setq smerge-command-prefix "\C-cs")
+
+(global-set-key (kbd "C-j") #'newline-and-indent)
+
+;; Use browse-kill-ring
+(global-set-key "\C-cy" '(lambda ()
+                           (interactive)
+                           (browse-kill-ring)))
+
+;; source: http://steve.yegge.googlepages.com/my-dot-emacs-file
+(defun mv-file-and-buffer (new-name)
+  "Renames both current buffer and file it's visiting to NEW-NAME."
+  (interactive "sNew name: ")
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (if (get-buffer new-name)
+          (message "A buffer named '%s' already exists!" new-name)
+        (progn
+          (rename-file filename new-name 1)
+          (rename-buffer new-name)
+          (set-visited-file-name new-name)
+          (set-buffer-modified-p nil))))))
+
+;; Jump forward to the next argument in a function or item in a list,
+;; and put it on a new line.  To re-indent a function, use C-M-j till
+;; you see the end-of-list, then use C-M-h once.  If a comma is
+;; already present at the end of the list, then use C-M-j instead of
+;; C-M-h at the end of the list.
+(fset 'newline-at-next-argument-or-item
+      [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
+(global-set-key "\C-\M-j" 'newline-at-next-argument-or-item)
+(fset 'newline-at-arglist-or-list-end
+      [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
+(global-set-key "\C-\M-h" 'newline-at-arglist-or-list-end)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Full width comment box                                                 ;;
+;; from http://irreal.org/blog/?p=374                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun bjm-comment-box (b e)
+  (interactive "r")
+  (let ((e (copy-marker e t)))
+    (goto-char b)
+    (end-of-line)
+    (insert-char ?  (- fill-column (current-column)))
+    (comment-box b e 1)
+    (goto-char e)
+    (set-marker e nil)))
+
+(global-set-key (kbd "C-c b b") 'bjm-comment-box)
+
+;; Eval-region similar to eval-sexp (overwriting find-file-read-only)
+(global-set-key (kbd "C-x C-r") 'eval-region)
+
+;; Write a commit message in emacs.  To exit, do C-c C-c.  Plays well
+;; with Tramp.
+(global-set-key (kbd "C-c c") 'magit-commit-create)
+
+;; https://www.emacswiki.org/emacs/BuildTags#toc4
+(defun create-tags (dir-name glob)
+  "Create tags file."
+  (interactive "DDirectory: \nsName glob: ")
+  (eshell-command 
+   (format "find %s -type f -name \"%s\" | etags -" dir-name glob)))
+
+;; With a list of debug statements like backend-types.log open in one
+;; buffer and a whoami run.py shell in another buffer, use
+;; copy-paste-whoami-input-line to format the current line's sentence
+;; and subjects into the Whoami shell, and move to the next line.
+;; After doing so, without moving point, use
+;; investigate-whoami-input-without-subject-substitutions to submit
+;; the same query without the subject substitutions.
+(fset 'copy-paste-whoami-input-line
+      [?\C-s ?\" return ?\C-  ?\C-s ?\( ?\[ return ?\C-b ?\C-b ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?  ?| ?| ?  ?\C-x ?o ?\C-s ?\( ?\[ return ?\C-  ?\C-s ?\] ?\) return ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?\C-p ?\C-p ?\C-p ?\C-\M-% ?\' ?, ?  ?\' return ?& ?& return ?! ?\C-p ?\C-p ?\C-p ?\C-\M-% ?| ?| ?  ?\' return ?| ?| ?  return ?! ?\M-> backspace return ?\C-x ?o ?\C-n ?\C-a])
+(fset 'investigate-whoami-input-without-subject-substitutions
+      [?\C-x ?o ?\C-r ?| ?| ?\C-r return ?\C-  ?\C-r ?> ?  return ?\C-f ?\C-f ?\M-w ?\M-> ?\C-y return ?\C-x ?o])
+(global-set-key (kbd "C-c C-w") 'copy-paste-whoami-input-line)
+(global-set-key (kbd "C-c C-s") 'investigate-whoami-input-without-subject-substitutions)
+
+;; End common commands
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Stripe specific settings                                               ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;; DUMB JUMP CONFIG
+;; (setq dumb-jump-default-project "~/")
+;; (setq dumb-jump-force-searcher 'rg)
+;; ;; Dumb jump mode overwrites C-M-q, just name each useful command
+;; ;; instead.
+;; (global-set-key (kbd "M-.") #'dumb-jump-go)
+;; (global-set-key (kbd "C-.") #'dumb-jump-back)
+;; (global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
+;; (global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
+;;;;;;;;;;;; END DUMB JUMP CONFIG
+
+;; Use FZF to find files by name in the global context
+(global-set-key (kbd "C-c C-f") #'fzf)
+
+;; cycle snake_case, camelCase, etc for ruby
+(require 'string-inflection)
+(global-set-key (kbd "C-c C-u") 'string-inflection-all-cycle)
+
+;; ;; Kill and replace the sexp at point, ending with the last yank at
+;; ;; the top of the kill ring.
+;; (fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
+;; (global-set-key "\C-\M-y" 'replace-sexp-at-point)
+
+;; Kill the line at point, change buffer, rg the line, and return
+(fset 'move-line-into-other-buffer
+      [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
+(global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
+
+;; End Stripe specific settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; BEGIN AUTOGEN (dashboard depends on Emacs 25.3)                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(flycheck-javascript-flow-args nil)
+ '(package-selected-packages
+   (quote
+    (gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring move-text dumb-jump robe fzf yaml-mode web-mode use-package prettier-js helm-projectile flycheck-flow company-flow))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+
+;; end Autogen
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Python settings                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Lint in python
+;; (load "~/.emacs.d/flycheck-pycodestyle.el")
+;; (add-hook 'python-mode-hook 'flycheck-mode)
+
+;; Keys for indentation
+(global-set-key (kbd "C-.") #'python-indent-shift-right)
+(global-set-key (kbd "C-,") #'python-indent-shift-left)
+
+;; Treat word_word or wordWord as word boundaries
+(subword-mode +1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+
+;; End Python settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tramp configuration                                                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq tramp-auto-save-directory "/tmp")
+
+;; Speed up Tramp (https://emacs.stackexchange.com/a/37855)
+(setq remote-file-name-inhibit-cache nil)
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+              vc-ignore-dir-regexp
+              tramp-file-name-regexp))
+(setq tramp-verbose 1)
+;; Other Tramp perf optimizations (git:michaelsilver/emacs-config)
+(setq tramp-completion-reread-directory-timeout nil)
+(customize-set-variable 'tramp-use-ssh-controlmaster-options nil)
+
+;; Open dired buffer for home directory on my favorite computers
+(defun spr ()
+  (interactive)
+  (infolab-ssh "spratly"))
+(defun wal ()
+  (interactive)
+  (infolab-ssh "wallis"))
+(defun sno ()
+  (interactive)
+  (ssh "snowflake.myddns.me" "~"))
+(defun slu ()
+  (interactive)
+  (ssh "slushy.myddns.me" "~"))
+(defun ice ()
+  (interactive)
+  (ssh "slushy.myddns.me" "/media/henryhu/icecube"))
+
+;; Athena dialup, which requires two-factor authentication.  First
+;; passcode prompt: type in MIT passcode.  Second passcode prompt:
+;; type "1" for push, "2" for call, and "3" for SMS.
+(defun ath ()
+  (interactive)
+  (ssh "athena.dialup.mit.edu" "~"))
+
+(defun infolab-ssh (host)
+  (interactive "sHostname: ")
+  (let ((infolab-hostname (concat host ".csail.mit.edu")))
+    (ssh infolab-hostname "~")))
+
+(defun ssh (host dir)
+  (interactive "sFull Hostname: \nsDirectory: ")
+  (dired (concat "/ssh:henryhu@" host ":" dir))
+  ;; Flycheck causes saves to freeze in Tramp
+  ;; (https://github.com/flycheck/flycheck/issues/54)
+  (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
+
+;; End tramp configuration
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; MacOS specific configuration                                           ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Open shell in same window, even on emacs 26
+;; https://github.com/syl20bnr/spacemacs/issues/6820
+(push (cons "\\*shell\\*" display-buffer--same-window-action)
+      display-buffer-alist)
+
+;; End MacOS specific configuration
