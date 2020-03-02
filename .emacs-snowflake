@@ -1,3 +1,4 @@
+;; -*- mode: Lisp;-*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Package setup                                                          ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -103,6 +104,19 @@
 
 ;; Enable line numbers globally
 (global-linum-mode t)
+
+;; Prevent slowdown from major modes in files with longlines
+;; Especially python-mode
+;; https://emacs.stackexchange.com/questions/598/how-do-i-prevent-extremely-long-lines-making-emacs-slow
+(add-hook
+ 'find-file-hook
+ (defun my-find-file-care-about-long-lines ()
+   (save-excursion
+     (goto-char (point-min))
+     (when (and (not (eq major-mode 'image-mode))
+                (search-forward-regexp ".\\{1000\\}" 50000 t)
+                (y-or-n-p "Very long lines detected - continue without a major mode? "))
+       (fundamental-mode)))))
 
 ;; Change startup splash screen to be more useful.
 (use-package dashboard
