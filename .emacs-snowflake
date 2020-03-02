@@ -335,29 +335,32 @@
   (infolab-ssh "wallis"))
 (defun sno ()
   (interactive)
-  (ssh "snowflake.myddns.me" "~"))
+  (ssh "henryhu" "snowflake.myddns.me" "~"))
 (defun slu ()
   (interactive)
-  (ssh "slushy.myddns.me" "~"))
+  (ssh "henryhu" "slushy.myddns.me" "~"))
 (defun ice ()
   (interactive)
-  (ssh "slushy.myddns.me" "/media/henryhu/icecube"))
+  (ssh "henryhu" "slushy.myddns.me" "/media/henryhu/icecube"))
+(defun rac ()
+  (interactive)
+  (ssh "racecar" "192.168.1.21" "~"))
 
 ;; Athena dialup, which requires two-factor authentication.  First
 ;; passcode prompt: type in MIT passcode.  Second passcode prompt:
 ;; type "1" for push, "2" for call, and "3" for SMS.
 (defun ath ()
   (interactive)
-  (ssh "athena.dialup.mit.edu" "~"))
+  (ssh "henryhu" "athena.dialup.mit.edu" "~"))
 
 (defun infolab-ssh (host)
   (interactive "sHostname: ")
   (let ((infolab-hostname (concat host ".csail.mit.edu")))
-    (ssh infolab-hostname "~")))
+    (ssh "henryhu" infolab-hostname "~")))
 
-(defun ssh (host dir)
-  (interactive "sFull Hostname: \nsDirectory: ")
-  (dired (concat "/ssh:henryhu@" host ":" dir))
+(defun ssh (user host dir)
+  (interactive "sUser: \nsFull Hostname: \nsDirectory: ")
+  (dired (concat "/ssh:" user "@" host ":" dir))
   ;; Flycheck causes saves to freeze in Tramp
   ;; (https://github.com/flycheck/flycheck/issues/54)
   (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
