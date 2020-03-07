@@ -10,6 +10,7 @@
 	helper = osxkeychain
 [core]
 	editor = emacs
+	excludesfile = /Users/henryhu/.gitignore
 [alias]
 	lol = log --graph --oneline --decorate --color --all
 	s = status
