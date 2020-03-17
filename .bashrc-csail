@@ -41,6 +41,46 @@ alias lsl='find . -ls -name "*~" -prune'
 #BEGIN start minecraft server
 alias mc-start='exec java -Xms1G -Xmx1G -jar server.jar nogui;'
 #END start minecraft server
+#BEGIN whoami aliases
+alias whoami-test='nosetests -v ~/whoami/tests && whoami-lint'
+alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501'
+alias whoami-run='python ~/whoami/scripts/run.py'
+alias astro-test='nosetests -v ~/astroparse/tests && astro-lint'
+alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501'
+alias astro-run='python ~/astroparse/ilearn.py'
+elint () {
+    # whoami lint
+    lint_files=$(whoami-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	emacs $@ $lint_files
+    else
+	echo "Nothing to lint in whoami! Yay :)"
+    fi
+    # astroparse lint
+    lint_files=$(astro-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	emacs $@ $lint_files
+    else
+	echo "Nothing to lint in astroparse! Yay :)"
+    fi
+}
+autolint () {
+    # whoami lint
+    lint_files=$(whoami-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	autopep8 --in-place --ignore=E501 $@ $lint_files
+    else
+	echo "Nothing to lint in whoami! Yay :)"
+    fi
+    # astroparse lint
+    lint_files=$(astro-lint -q | paste -sd " " -)
+    if [ ! -z "$lint_files" ]; then
+	autopep8 --in-place --ignore=E501 $@ $lint_files
+    else
+	echo "Nothing to lint in astroparse! Yay :)"
+    fi
+}
+#END whoami aliases
 ########### GIT TOOLS
 #BEGIN git auto-complete
 test -f ~/.git-completion.bash && . $_
@@ -78,6 +118,8 @@ else
 fi
 # <<< conda initialize <<<
 
+# Fix "Postgres driver not installed" for peewee
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/data/infolab/workspaces/henryhu/anaconda3/lib/"
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
