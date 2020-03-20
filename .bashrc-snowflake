@@ -171,6 +171,12 @@ function sf-scp () {
 function infolab() { eval "ssh -X henryhu@$1.csail.mit.edu" ;}
 alias spr='infolab spratly'
 alias wal='infolab wallis'
+alias espr='emacs -f spr'
+alias ewal='emacs -f wal'
+alias esno='emacs -f sno'
+alias erac='emacs -f rac'
+alias eath='emacs -f ath'
+alias essh='emacs -f ssh'
 #END infolab ssh
 #BEGIN mount file systems ssh
 alias mntbaker="umount -f ~/baker; sshfs henryhu@baker:/usr/local/share/baker/staging ~/baker"
@@ -226,3 +232,7 @@ source /anaconda3/bin/virtualenvwrapper.sh
 [ -f /Users/henryhu/.travis/travis.sh ] && source /Users/henryhu/.travis/travis.sh
 
 source ~/.wd-history
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
