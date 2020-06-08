@@ -1,0 +1,19 @@
+[user]
+	name = hanryhu
+	email = henryhu@csail.mit.edu
+[core]
+	editor = emacs -nw
+	excludesfile = /afs/csail.mit.edu/u/h/henryhu/.gitignore
+[alias]
+	lol = log --graph --oneline --decorate --color --all
+	s = status
+	# The final ; inside the function is necessary.
+	rapply = "!f() { git stash apply stash^{/$1}; }; f"
+[merge]
+	conflictstyle = diff3
+	renameLimit = 999999
+[rerere]
+	enabled = true
+	autoupdate = true
+[include]
+	path = /data/infolab/start/common-gitconfig
