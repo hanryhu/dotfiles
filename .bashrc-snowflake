@@ -32,6 +32,11 @@ function dcf-exec ()
 	echo 'output at temp.out';
 }
 # END 6.035
+# BEGIN 6.141
+function sim () {
+    '/Applications/Tesse RSS V5.app/Contents/MacOS/TESSE' --client_ip_addr 172.16.204.128
+}
+# END 6.141
 # better which
 alias which=type
 # end better which
@@ -199,6 +204,7 @@ slushy="slushy.myddns.me"
 alias slu="ssh -X henryhu@slushy.myddns.me"
 alias sno="ssh -X henryhu@snowflake.myddns.me"
 alias flo="ssh -X racecar@flocon.myddns.me"
+alias nlp="ssh ubuntu@ec2-54-88-185-120.compute-1.amazonaws.com"
 #END slushy ssh
 #BEGIN Shortcut for athena
 function athena() {
@@ -231,8 +237,36 @@ source /anaconda3/bin/virtualenvwrapper.sh
 # added by travis gem
 [ -f /Users/henryhu/.travis/travis.sh ] && source /Users/henryhu/.travis/travis.sh
 
+# Working directory shortcut
 source ~/.wd-history
+# End working directory shortcut
 
+# Node virtual environments
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# END Node virtual environments
+
+# swap two files
+function swap()
+{
+    local TMPFILE=tmp.$$
+    mv "$1" $TMPFILE && mv "$2" "$1" && mv $TMPFILE "$2"
+}
+function swap-swap()
+{
+    local TMPFILE=tmp.$$
+    mv-mv "$1" $TMPFILE && mv-mv "$2" "$1" && mv-mv $TMPFILE "$2"
+}
+alias sw=swap
+alias sw-sw=swap-swap
+# END swap two files
+
+function zoomcrop () {
+    echo "Usage: zoomcrop IN OUT"
+    ffmpeg -i $1 -filter:v "crop=2075:1181:0:116" $2 # crop=w:h:x:y
+}
+
+function rm-audio {
+    ffmpeg -i $1 -c copy -an "$1-nosound.${1#*.}"
+}
