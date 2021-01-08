@@ -5,6 +5,9 @@ complete -cf sudo
 # BEGIN custom code to set prompt
 export PS1="\w$ "
 # End custom code to set prompt
+# BEGIN suppress bash warning
+export BASH_SILENCE_DEPRECATION_WARNING=1
+# End suppress bash warning
 
 
 ######## USEFUL ALIASES
@@ -68,6 +71,25 @@ function maybe-git-rm ()
 }
 alias rm=maybe-git-rm
 #end better rm
+# Custom code to toggle sidecar for Glacier
+BASHRC_SIDECARSCRIPT="osascript -e 'set deviceName to \"Glacier\"
+
+tell application \"System Events\"
+	tell process \"SystemUIServer\"
+		click (menu bar item 1 of menu bar 1 whose description contains \"Displays\")
+		set displaymenu to menu 1 of result
+		if ((menu item 1 where its name starts with deviceName) of displaymenu) exists then
+			-- Not connected, so click the name of the device to connect
+			click ((menu item 1 where its name starts with deviceName) of displaymenu)
+		else
+			-- Connected, so click \"Disconnect\" to disconnect
+			click ((menu item 1 where its name starts with \"Disconnect\") of displaymenu)
+		end if
+	end tell
+end tell'"
+alias sidecar=$BASHRC_SIDECARSCRIPT
+alias s=sidecar
+# End custom code to toggle sidecar for Glacier
 # Custom code to switch scrolling
 BASHRC_TOGGLESCRIPT="osascript -e 'tell application \"System Preferences\"
   reveal anchor \"trackpadTab\" of pane id \"com.apple.preference.trackpad\"
@@ -173,7 +195,7 @@ function sf-scp () {
 }
 #END snowflake scp
 #BEGIN infolab ssh
-function infolab() { eval "ssh -X henryhu@$1.csail.mit.edu" ;}
+function infolab() { eval "ssh -Y henryhu@$1.csail.mit.edu" ;}
 alias spr='infolab spratly'
 alias wal='infolab wallis'
 alias espr='emacs -f spr'
@@ -201,15 +223,15 @@ alias check-ip="dig +short myip.opendns.com @resolver1.opendns.com"
 slushy="slushy.myddns.me"
 #END instance var slushy -- computer domain
 #BEGIN slushy ssh
-alias slu="ssh -X henryhu@slushy.myddns.me"
-alias sno="ssh -X henryhu@snowflake.myddns.me"
-alias flo="ssh -X racecar@flocon.myddns.me"
+alias slu="ssh -Y henryhu@slushy.myddns.me"
+alias sno="ssh -Y henryhu@snowflake.myddns.me"
+alias flo="ssh -Y racecar@flocon.myddns.me"
 alias nlp="ssh ubuntu@ec2-54-88-185-120.compute-1.amazonaws.com"
 #END slushy ssh
 #BEGIN Shortcut for athena
 function athena() {
-    echo "ssh -X athena.dialup.mit.edu;"
-    ssh -X athena.dialup.mit.edu;
+    echo "ssh -Y athena.dialup.mit.edu;"
+    ssh -Y athena.dialup.mit.edu;
 }
 alias a=athena
 #END Shortcut for athena
@@ -229,9 +251,9 @@ export PATH
 #alias emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
 
 # Python virtualenvs
-export WORKON_HOME=~/.virtualenvs
-export VIRTUALENVWRAPPER_PYTHON=/anaconda3/bin/python3.7;
-source /anaconda3/bin/virtualenvwrapper.sh
+# export WORKON_HOME=~/.virtualenvs
+# export VIRTUALENVWRAPPER_PYTHON=/opt/anaconda3/bin/python3.7;
+# source /opt/anaconda3/bin/virtualenvwrapper.sh
 # END Python virtualenvs
 
 # added by travis gem
@@ -269,4 +291,31 @@ function zoomcrop () {
 
 function rm-audio {
     ffmpeg -i $1 -c copy -an "$1-nosound.${1#*.}"
+}
+
+function epic-games-non-crash {
+    open /Applications/Epic\ Games\ Launcher.app --args -ForceMacOldHttpImpl
+}
+
+function vnc-tunnel {
+    # How to connect to malta via VNC:
+    # vnc-tunnel;
+    # open VNCViewer and go to Localhost:5901
+    ssh start@malta.csail.mit.edu -L 5901:localhost:5901;
+    # Alternatively:
+    # ssh -Y wallis.csail.mit.edu;
+    # wallis:~$ vnc
+}
+
+function fix-webcam {
+    pushd ~/node-uvc-control
+    node ./examples/server.js > /dev/null 2>&1 &
+    sleep 0.5 # wait for node to start the server
+    # Don't use https, or else SSL protocol error
+    chrome "http://localhost:3000/" > /dev/null 2>&1 &
+    read -p "Press enter to kill all node jobs in this terminal session"
+    echo "Good bye!"
+    echo "------------"
+    kill $(jobs -p node)
+    popd
 }
