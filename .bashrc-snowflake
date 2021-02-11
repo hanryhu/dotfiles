@@ -123,10 +123,10 @@ alias chrome='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
 #END start google chrome
 #BEGIN whoami aliases
 alias whoami-test='nosetests -v ~/whoami/tests && whoami-lint'
-alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501'
+alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501,W504'
 alias whoami-run='python ~/whoami/scripts/run.py'
 alias astro-test='nosetests -v ~/astroparse/tests && astro-lint'
-alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501'
+alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501,W504'
 alias astro-run='python ~/astroparse/ilearn.py'
 elint () {
     # whoami lint
@@ -148,14 +148,14 @@ autolint () {
     # whoami lint
     lint_files=$(whoami-lint -q | paste -sd " " -)
     if [ ! -z "$lint_files" ]; then
-	autopep8 --in-place --ignore=E501 $@ $lint_files
+	autopep8 --in-place --ignore=E501,W504 $@ $lint_files
     else
 	echo "Nothing to lint in whoami! Yay :)"
     fi
     # astroparse lint
     lint_files=$(astro-lint -q | paste -sd " " -)
     if [ ! -z "$lint_files" ]; then
-	autopep8 --in-place --ignore=E501 $@ $lint_files
+	autopep8 --in-place --ignore=E501,W504 $@ $lint_files
     else
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
@@ -196,8 +196,10 @@ function sf-scp () {
 #END snowflake scp
 #BEGIN infolab ssh
 function infolab() { eval "ssh -Y henryhu@$1.csail.mit.edu" ;}
+alias nav='infolab navassa'
 alias spr='infolab spratly'
 alias wal='infolab wallis'
+alias enav='emacs -f nav'
 alias espr='emacs -f spr'
 alias ewal='emacs -f wal'
 alias esno='emacs -f sno'
@@ -251,9 +253,10 @@ export PATH
 #alias emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
 
 # Python virtualenvs
-# export WORKON_HOME=~/.virtualenvs
-# export VIRTUALENVWRAPPER_PYTHON=/opt/anaconda3/bin/python3.7;
-# source /opt/anaconda3/bin/virtualenvwrapper.sh
+export WORKON_HOME=~/.virtualenvs
+export VIRTUALENVWRAPPER_PYTHON=/opt/anaconda3/bin/python3.8;
+source /opt/anaconda3/bin/virtualenvwrapper.sh
+export MACOSX_DEPLOYMENT_TARGET=10.15
 # END Python virtualenvs
 
 # added by travis gem

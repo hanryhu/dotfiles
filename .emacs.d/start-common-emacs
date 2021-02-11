@@ -1,0 +1,283 @@
+;
+;      Warning  WARNING  Warning  WARNING  Warning
+;
+;        This is not the file you want to edit.
+;
+;   `svn co svn+ssh://svn.csail.mit.edu/afs/csail.mit.edu/group/infolab/svnroot/common-files/trunk common-files`, then read the README
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;;; -*- Mode: Emacs-Lisp -*-
+
+;;;------------------------------------------------------------------- 
+;;;
+;;; General
+;;;
+
+;;; Disk space is cheap.  We can afford to use spaces instead of tabs,
+;;; and it works better with some modern tools.  But to stay
+;;; compatible with Boris and Zmacs, make lisp continue to use tabs.
+;;; (See infolab-lisp-mode-hook, below.)
+(setq-default indent-tabs-mode nil)
+
+
+;;;------------------------------------------------------------------- 
+;;;
+;;; For Java
+;;;
+
+;; java tabs should be groups of spaces.  I don't setq-default because 
+;; I don't want to foist this on all modes:
+(defun set-java-notab-indent () "" (interactive "")
+  (setq indent-tabs-mode nil))
+(add-hook 'java-mode-hook 'set-java-notab-indent)
+
+
+
+(defun scheme-mode-for-bash ()
+  (interactive)
+  (if (and
+       (> (length (buffer-string)) 53)
+       (string=
+        (buffer-substring 1 53)
+        "#!/usr/bin/env bash
+#|
+exec csi -w -ss \"$0\" \"$@\"
+|#
+"))
+      (scheme-mode)))
+(add-hook 'sh-mode-hook 'scheme-mode-for-bash)
+
+
+;;;------------------------------------------------------------------- 
+;;;
+;;; Indent Scheme nicely.
+;;;
+
+(add-hook 'scheme-mode-hook 'infolab-scheme-mode-hook)
+
+(defun infolab-scheme-mode-hook ()
+  "Custom Scheme mode hook."
+  (interactive)
+  (make-local-variable 'scheme-indent-function)
+
+  ;; Scheme procedures
+
+  ;; More convenient this way.
+  (put 'call-with-input-string 'scheme-indent-function 1)
+  ;; Emacs Scheme mode doesn't know about this Chicken special form.
+  (put 'receive 'scheme-indent-function 2)
+  ;; Ought to be built in to Emacs Scheme mode, but apparently isn't.
+  (put 'while 'scheme-indent-function 1)
+
+  ;; Infolab procedures (infolab-core / Omnibase)
+
+  ;; Util fns in git:infolab-core/chicken_src/fileutil.scm
+  (put 'with-each-line 'scheme-indent-function 1)
+  (put 'with-output-appending-to-file 'scheme-indent-function 1)
+  ;; Util fns in git:infolab-core/chicken_src/loglevel.scm
+  (put 'port-print 'scheme-indent-function 1)
+  (put 'port-puts 'scheme-indent-function 1)
+  ;; Util fns in git:infolab-core/chicken_src/test-wrapper.scm
+  (put 'test-group 'scheme-indent-function 1)
+  )
+
+
+;;;------------------------------------------------------------------- 
+;;;
+;;; Indent Common Lisp nicely.
+;;;
+
+(defun infolab-lisp-mode-hook ()
+  ;; Prefer to indent with tabs rather than spaces to stay compatible
+  ;; with Boris, who uses Zmacs.
+  (setq indent-tabs-mode t))
+
+(add-hook 'lisp-mode-hook 'infolab-lisp-mode-hook)
+
+;;; Generally use Common Lisp indenting, as provided by cl-indent.el,
+;;; in lisp-mode.
+;;;
+;;; This line appears to be the culprit, according to Alexey's
+;;; investigations, that makes us indent Scheme code wrong (first form
+;;; of a define gets misindented four spaces).  It came from Sue's
+;;; Athena .emacs from 1996 or possibly several years earlier, and
+;;; doesn't seem to be needed for Common Lisp anymore.  Test that, and
+;;; if true, remove this line entirely.
+;;;(setq lisp-indent-function 'common-lisp-indent-function)
+
+;;; Allegro CL does its own indenting with a different property that
+;;; takes different values -- it doesn't process &<key> indicators.
+
+(let ((elisp-cl-indent-tag 'common-lisp-indent-function)
+      (acl-indent-tag 'fi:common-lisp-indent-hook)
+      (cl-indent-alist
+       '(
+	 ;; Conditions.
+	 (handler-bind 1)
+	 (restart-bind 1)
+	 (handler-case
+	  (4 &rest (&whole 2 (&whole 4 &rest 1) &body)))
+	 ;; Would need a hairy indent function to support really fancy keyword
+	 ;; indentation:
+	 ;;   (restart-case (foo)
+	 ;;     (error (c)
+	 ;;         :report
+	 ;;           "Error!"
+	 ;;       (fix-it)))
+	 ;; For now don't bother about the keywords.
+	 (restart-case
+	  (4 &rest (&whole 2 4 &body)))
+
+	 ;; CLOS.  Added 18 Sept 1998, sfelshin.
+	 (defclass
+	  (4
+	    (&whole 4 &rest 1)
+	    (&whole 2 &rest (&whole 2 &rest 1))
+	    &rest (&whole 2 &rest 1)))
+	 (defgeneric
+	  (4 (&whole 4 &rest 1) &rest (&whole 2 4 &body)))
+	 ;; Need some clever hacks to deal with optional method qualifier.  Lacking
+	 ;; that, just use standard DEF... indentation.
+	 ;;(defmethod ???)
+	 ))
+      (START-indent-alist
+       '(
+	 (b-filter 1)
+	 (construct-rexec-invocation 2)
+	 (continue-if 1)
+         (def-antonyms 0)
+         (def-article? 0)
+         (def-compound-from-specification 0)
+         (def-connective 0)
+         (def-event 0)
+         (def-external-annotation 0)
+         (def-generalizations 0)
+         (def-holonyms 0)
+	 (def-lexical-property 1)
+         (def-match-generalization 0)
+         (def-meronyms 0)
+	 (def-native-class 1)
+	 (def-omnibase-class 1)
+         (def-prototype-noun 0)
+	 (def-referent-class 1)
+	 (def-referent-concept-class 1)
+	 (def-schema 1)
+         (def-specializations 0)
+         (def-syns 0)
+	 (def-tie 1)
+         (def-whois 0)
+	 (def-wikipedia-class 1)
+         (default-ants-key-function 0)
+         (default-class-key-function 0)
+         (default-dialog-mode 0)
+         (default-key-function-handle-prop 0)
+         (default-gens-for-matching-only-key-function 0)
+         (default-gens-key-function 0)
+         (default-ident-key-function 0)
+         (default-measure-key-function 0)
+         (default-print-field-value-by-format 0)
+         (default-prop-key-function 0)
+         (default-specs-key-function 0)
+         (default-spell-key-function 0)
+         (default-swapability-test 0)
+         (default-syns-key-function 0)
+         (default-start-host 0)
+         (define-abbreviations 0)
+         (define-adj-carefully 0)
+         (define-adverb-carefully 0)
+         (define-g-of-x-value-as-word 0)
+         (define-intensifier-carefully 0)
+         (define-native-continent 0)
+         (define-native-country 0)
+         (define-native-state 0)
+         (define-number 0)
+         (define-permanent-qsymbols 0)
+         (define-place-word 0)
+         (define-props-for-poss-pair 0)
+         (define-protocol 1)
+         (define-quoted-phrase-carefully 0)
+         (define-start-host 1)
+         (define-start-server 2)
+         (define-super-class 0)
+         (define-temp-noun 0)
+         (define-temp-word-from-lex-entry 0)
+         (define-word-carefully 0)
+         (define-word-non-natively 0)
+         (define-words-from-word-definition-data 0)
+         (definition-filter 0)
+         (definition-question? 0)
+	 ;;(defiter 2)	;like DEFUN
+	 (defpattern 4)
+	 (defpattern-peek 4)
+	 (defprobe 1)
+	 (defresource 1)
+	 (do-sequence-randomly 1)
+	 (enumerating-item 1)
+	 (ensure-that 1)
+	 (f-filter 1)
+	 (filling-output 1)
+	 (format-when-probing 2)
+	 (generic-defsubsystem 1)
+	 (generic-defsystem 1)
+	 (iterate 1) ;like DOLIST
+	 (let-opt 1) ;like LET
+         (make-verb 0)
+	 (recording-query-reply 1)
+	 (redirecting-output 2)
+         (suppressing-wikibase-errors 2)
+	 (test-suite 1)
+	 (tie-case 2)
+	 (tie-ecase 2)
+	 (trying-lexical-analysis-choices 1)
+	 (unless-probing 1)
+	 (when-probing 1)
+	 (with-embedded-recording 1)
+	 (with-literal-url-noted 1)
+	 (with-logical-host 1)
+	 (with-logical-host-translations 1)
+	 (with-oframe-slots 2)
+	 (with-parse-words 0)
+	 (with-parsing-environment 0)
+	 (with-printing 1)
+	 (with-query-environment 0)
+	 (with-query-reply-environment 0)
+	 (with-question-variables 0)
+	 (with-service-stream-from-access-path 2)
+	 (with-standard-omnibase-restarts 0)
+	 (with-standard-output-to-string 0)
+	 (with-start-lock 0)
+	 (with-temporary-surface-representations 0)
+	 (with-temporary-words 0)
+	 (with-user-view 1)
+	 )))
+  ;; cl-indent.el doesn't include CLtL2 operators.  Specify
+  ;; indentation for lisps other than ACL.
+  (dolist (item cl-indent-alist)
+    (let ((name (car item))
+	  (indentation (cadr item)))
+      (put name elisp-cl-indent-tag indentation)))
+  ;; For START operators, specify special indentation for ACL and
+  ;; other lisps.
+  (dolist (item START-indent-alist)
+    (let ((name (car item))
+	  (indentation (cadr item)))
+      (put name acl-indent-tag indentation)
+      (put name elisp-cl-indent-tag indentation))))
+
+
