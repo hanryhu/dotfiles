@@ -13,6 +13,7 @@
 
 (setq use-package-always-ensure t)
 
+(package-refresh-contents)
 (setq henryhu-packages
       (list 'browse-kill-ring
 	    'company-flow    
@@ -24,7 +25,7 @@
 	    'magit           
 	    'move-text       
 	    'prettier-js
-           'python-docstring
+            'python-docstring
 	    'rg
 	    'string-inflection
 	    'scheme-complete
@@ -154,6 +155,11 @@
 ;; ;; Try to get colors to display in M-x shell, e.g., in binding.pry
 ;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
 ;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+
+;; Open shell in same window, even on emacs 26
+;; https://github.com/syl20bnr/spacemacs/issues/6820
+(push (cons "\\*shell\\*" display-buffer--same-window-action)
+      display-buffer-alist)
 
 ;; End Window system settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -437,10 +443,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MacOS specific configuration                                           ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Open shell in same window, even on emacs 26
-;; https://github.com/syl20bnr/spacemacs/issues/6820
-(push (cons "\\*shell\\*" display-buffer--same-window-action)
-      display-buffer-alist)
 ;; https://medium.com/@lynzt/mac-emacs-and-flycheck-executable-not-found-34e972759555
 (package-install 'exec-path-from-shell)
 (exec-path-from-shell-initialize)

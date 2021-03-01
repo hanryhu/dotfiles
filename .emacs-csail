@@ -1,14 +1,10 @@
-;; Redefine X11 Meta key: tylerkieft.com/archives/2006/10/05/redefine-the-x11-meta-key-in-mac-os-x/
-
-;; Add melpa to package source
+;; -*- mode: Emacs-Lisp;-*-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Package setup                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require 'package)
 (setq package-enable-at-startup nil)
-(add-to-list
- 'package-archives
- ;; '("melpa" . "http://stable.melpa.org/packages/") ; many packages won't show if using stable
- '("melpa" . "http://melpa.milkbox.net/packages/")
- t
- )
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
 (unless (package-installed-p 'use-package)
@@ -17,12 +13,42 @@
 
 (setq use-package-always-ensure t)
 
+(package-refresh-contents)
+(setq henryhu-packages
+      (list 'browse-kill-ring
+	    'company-flow    
+	    'dumb-jump
+	    'flycheck-flow   
+	    'fzf             
+	    'inf-ruby        
+	    'magit           
+	    'move-text       
+	    'prettier-js
+            'python-docstring
+	    'rg
+	    'string-inflection
+	    'scheme-complete
+	    'use-package     
+	    'web-mode        
+	    'yaml-mode))
+(mapcar #'package-install henryhu-packages)
+
+;; Zenburn theme
+(add-to-list 'custom-theme-load-path "~/zenburn-emacs")
+(load-theme 'zenburn t)
+
+;; Possibly fixes some package-install: Bad Request errors
+;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+
+;; End package setup
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Window system settings                                                 ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;; Turn off Folding Mode.  Must do this _before_ loading InfoLab-wide
 ;;; common-emacs file.
 (setq folding-auto-start nil)
 
-;;; Get common InfoLab settings:
-(load "~start/common-emacs")
 (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;start emacs maximized
 
 ;; Enable mouse support
@@ -37,7 +63,7 @@
                               (scroll-up 1)))
   (defun track-mouse (e))
   (setq mouse-sel-mode t)
-)
+  )
 
 ;; ;;;Set window height
 ;; (if (window-system)
@@ -46,8 +72,7 @@
 ;;; Start in fullscreen
 (defun my-fullscreen ()
   (interactive)
-  (set-frame-parameter nil 'fullscreen 'fullboth)
-  (set-frame-parameter nil 'fullscreen 'maximized))
+  (set-frame-parameter nil 'fullscreen 'fullheight))
 
 (defun my-non-fullscreen ()
   (interactive)
@@ -61,12 +86,23 @@
     (my-fullscreen)))
 
 (global-set-key (kbd "<f11>") 'toggle-fullscreen)
-;; (toggle-fullscreen)
-;; (toggle-fullscreen)
+;;; (toggle-fullscreen)
+;;; (toggle-fullscreen)
 (toggle-fullscreen)
 
-;;; Turn off toolbar
-(tool-bar-mode -1)
+;;; Alias for zooming (C-x C-+)
+(defun zoom-in ()
+  (interactive)
+  (text-scale-adjust 2))
+(defun zoom-out ()
+  (interactive)
+  (text-scale-adjust -2))
+;;; Make zooming global
+;;; https://stackoverflow.com/questions/18783227/emacs-zoom-in-out-globally
+(defadvice text-scale-increase (around all-buffers (arg) activate)
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      ad-do-it)))
 
 ;;;Typed text replaces the selection
 (delete-selection-mode 1)
@@ -79,74 +115,70 @@
 ;;; EDiffs split with windows on left and right instead of top and bottom
 (setq ediff-split-window-function (quote split-window-horizontally))
 
+(tool-bar-mode -1)
+(toggle-frame-maximized)
+
+;; Enable line numbers globally
+;; (global-linum-mode t) ; very slow for big files, esp. skip to file start
+
+;; Prevent slowdown from major modes in files with longlines
+;; Especially python-mode
+;; https://emacs.stackexchange.com/questions/598/how-do-i-prevent-extremely-long-lines-making-emacs-slow
+(add-hook
+ 'find-file-hook
+ (defun my-find-file-care-about-long-lines ()
+   (save-excursion
+     (goto-char (point-min))
+     (when (and (not (eq major-mode 'image-mode))
+		(not (eq major-mode 'doc-view-mode))
+                (search-forward-regexp ".\\{1000\\}" 50000 t)
+                (y-or-n-p "Very long lines detected - continue without a major mode? "))
+       (fundamental-mode)))))
+
+;; Move line/region with M-up, M-down
+(move-text-default-bindings)
+
+;; ;; Try to get colors to display in M-x shell, e.g., in binding.pry
+;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
+;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+
+;; Open shell in same window, even on emacs 26
+;; https://github.com/syl20bnr/spacemacs/issues/6820
+(push (cons "\\*shell\\*" display-buffer--same-window-action)
+      display-buffer-alist)
+
+;; End Window system settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Common commands                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Get common InfoLab settings:
+(load "~start/common-emacs")
+
 ;; Insert string for the current time formatted like '2:34 PM'.
 (defun now ()
-  (interactive)                 ; permit invocation in minibuffer
+  (interactive)			     ; permit invocation in minibuffer
   (insert (format-time-string "%D %-I:%M %p")))
 
 ;; Insert string for today's date nicely formatted in American style,
 ;; e.g. Sunday, September 17, 2000.
 (defun today ()
-  (interactive)                 ; permit invocation in minibuffer
+  (interactive)			     ; permit invocation in minibuffer
   (insert (format-time-string "%A, %B %e, %Y")))
-
-(global-set-key (kbd "C-j") #'newline-and-indent)
-(tool-bar-mode -1)
-
-;; Zenburn theme
-(add-to-list 'custom-theme-load-path "~/zenburn-emacs")
-(load-theme 'zenburn t)
 
 (defun rolldice ()
   (interactive)
   (shell-command "echo You rolled a $((1 + RANDOM % 6))\\! &"))
 
-;;;;;;;;;;;; DUMB JUMP CONFIG
-(setq dumb-jump-default-project "~/omnibase/")
-;; Dumb jump mode overwrites C-M-q, just name each useful command
-;; instead.
-(global-set-key (kbd "M-.") #'dumb-jump-go)
-(global-set-key (kbd "C-.") #'dumb-jump-back)
-(global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
-(global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
-;;;;;;;;;;;; END DUMB JUMP CONFIG
-
-;; Use FZF to find files by name in the global context
-(global-set-key (kbd "C-c C-f") #'fzf)
-
-;; cycle snake_case, camelCase, etc for ruby
-(require 'string-inflection)
-(global-set-key (kbd "C-c C-u") 'string-inflection-all-cycle)
-
-;; Try to get colors to display in M-x shell, e.g., in binding.pry
-(add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
-(add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
-
-;; Move line/region with M-up, M-down
-(move-text-default-bindings)
-
 ;; Enable super-merge mode better prefix binding
 (setq smerge-command-prefix "\C-cs")
 
-;; Enable line numbers globally
-;; (global-linum-mode t) ; very slow for big files, esp. skip to file start
+(global-set-key (kbd "C-j") #'newline-and-indent)
 
 ;; Use browse-kill-ring
 (global-set-key "\C-cy" '(lambda ()
                            (interactive)
                            (browse-kill-ring)))
-;; Possibly fixes some package-install: Bad Request errors
-;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
-
-;; Kill and replace the sexp at point, ending with the last yank at
-;; the top of the kill ring.
-(fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
-(global-set-key "\C-\M-y" 'replace-sexp-at-point)
-
-;; Kill the line at point, change buffer, rg the line, and return
-(fset 'move-line-into-other-buffer
-   [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
-(global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
 
 ;; source: http://steve.yegge.googlepages.com/my-dot-emacs-file
 (defun mv-file-and-buffer (new-name)
@@ -169,51 +201,45 @@
 ;; you see the end-of-list, then use C-M-h once.  If a comma is
 ;; already present at the end of the list, then use C-M-j instead of
 ;; C-M-h at the end of the list.
-(fset 'python-newline-at-next-argument-or-item
-   [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
-(global-set-key "\C-\M-j" 'python-newline-at-next-argument-or-item)
-(fset 'python-newline-at-arglist-or-list-end
-   [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
-(global-set-key "\C-\M-h" 'python-newline-at-arglist-or-list-end)
+(fset 'newline-at-next-argument-or-item
+      [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
+(global-set-key "\C-\M-j" 'newline-at-next-argument-or-item)
+(fset 'newline-at-arglist-or-list-end
+      [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
+(global-set-key "\C-\M-h" 'newline-at-arglist-or-list-end)
 
-;; Prevent shebang on infolab .scm files from interfering with scheme-mode
-(defun scheme-mode-for-bash ()
-  (interactive)
-  (if (and
-       (> (length (buffer-string)) 53)
-       (string-match
-        "exec csi .*"
-        (buffer-string)))
-      (scheme-mode)))
-(add-hook 'sh-mode-hook 'scheme-mode-for-bash)
+;; Used to continue search after M-x tags-search RET <term> RET
+(global-set-key "\M-," 'tags-loop-continue)
 
-;; Scheme autocomplete
-(autoload 'scheme-smart-complete "scheme-complete" nil t)
-(eval-after-load 'scheme
-  '(define-key scheme-mode-map "\t" 'scheme-complete-or-indent))
-;; Scheme eldoc
-(autoload 'scheme-get-current-symbol-info "scheme-complete" nil t)
-(add-hook 'scheme-mode-hook
-  (lambda ()
-    (make-local-variable 'eldoc-documentation-function)
-    (setq eldoc-documentation-function 'scheme-get-current-symbol-info)
-    (eldoc-mode)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Full width comment box                                                 ;;
+;; from http://irreal.org/blog/?p=374                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun bjm-comment-box (b e)
+  (interactive "r")
+  (let ((e (copy-marker e t)))
+    (goto-char b)
+    (end-of-line)
+    (insert-char ?  (- fill-column (current-column)))
+    (comment-box b e 1)
+    (goto-char e)
+    (set-marker e nil)))
 
+(global-set-key (kbd "C-c b b") 'bjm-comment-box)
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   (quote
-    (gh-md flymd markdown-preview-mode markdown-mode+ markdown-mode yaml-mode web-mode use-package string-inflection scheme-complete package+ move-text elisp-docstring-mode dumb-jump company-flow cl-generic browse-kill-ring))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;; Eval-region similar to eval-sexp (overwriting find-file-read-only)
+(global-set-key (kbd "C-x C-r") 'eval-region)
+
+;; Write a commit message in emacs.  To exit, do C-c C-c.  Plays well
+;; with Tramp.
+(global-set-key (kbd "C-c c") 'magit-commit)
+
+;; https://www.emacswiki.org/emacs/BuildTags#toc4
+(defun create-tags (dir-name glob)
+  "Create tags file."
+  (interactive "DDirectory: \nsName glob: ")
+  (eshell-command 
+   (format "find %s -type f -name \"%s\" | etags -" dir-name glob)))
 
 ;; With a list of debug statements like backend-types.log open in one
 ;; buffer and a whoami run.py shell in another buffer, use
@@ -224,9 +250,179 @@
 ;; the same query without the subject substitutions.
 (fset 'copy-paste-whoami-input-line
       [?\C-s ?\" return ?\C-  ?\C-s ?\( ?\[ return ?\C-b ?\C-b ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?  ?| ?| ?  ?\C-x ?o ?\C-s ?\( ?\[ return ?\C-  ?\C-s ?\] ?\) return ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?\C-p ?\C-p ?\C-p ?\C-\M-% ?\' ?, ?  ?\' return ?& ?& return ?! ?\C-p ?\C-p ?\C-p ?\C-\M-% ?| ?| ?  ?\' return ?| ?| ?  return ?! ?\M-> backspace return ?\C-x ?o ?\C-n ?\C-a])
-
 (fset 'investigate-whoami-input-without-subject-substitutions
       [?\C-x ?o ?\C-r ?| ?| ?\C-r return ?\C-  ?\C-r ?> ?  return ?\C-f ?\C-f ?\M-w ?\M-> ?\C-y return ?\C-x ?o])
+(global-set-key (kbd "C-c C-w") 'copy-paste-whoami-input-line)
+(global-set-key (kbd "C-c C-s") 'investigate-whoami-input-without-subject-substitutions)
 
-(global-set-key "\C-c \C-w" 'copy-paste-whoami-input-line)
-(global-set-key "\C-c \C-s" 'investigate-whoami-input-without-subject-substitutions)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org mode                                                               ;;
+;; from https://orgmode.org/worg/org-tutorials/orgtutorial_dto.html	  ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(require 'org)
+(define-key global-map "\C-cl" 'org-store-link)
+(define-key global-map "\C-ca" 'org-agenda)
+(setq org-log-done t)
+
+;; End common commands
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Stripe specific settings                                               ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;; DUMB JUMP CONFIG
+;; (setq dumb-jump-default-project "~/")
+;; (setq dumb-jump-force-searcher 'rg)
+;; ;; Dumb jump mode overwrites C-M-q, just name each useful command
+;; ;; instead.
+;; (global-set-key (kbd "M-.") #'dumb-jump-go)
+;; (global-set-key (kbd "C-.") #'dumb-jump-back)
+;; (global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
+;; (global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
+;;;;;;;;;;;; END DUMB JUMP CONFIG
+
+;; Use FZF to find files by name in the global context
+(global-set-key (kbd "C-c C-f") #'fzf)
+
+;; cycle snake_case, camelCase, etc for ruby
+(require 'string-inflection)
+(global-set-key (kbd "C-c C-u") 'string-inflection-all-cycle)
+
+;; ;; Kill and replace the sexp at point, ending with the last yank at
+;; ;; the top of the kill ring.
+;; (fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
+;; (global-set-key "\C-\M-y" 'replace-sexp-at-point)
+
+;; Kill the line at point, change buffer, rg the line, and return
+(fset 'move-line-into-other-buffer
+      [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
+(global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
+
+;; End Stripe specific settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; BEGIN AUTOGEN                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   (quote
+    (rg python-docstring prettier-js magit inf-ruby fzf exec-path-from-shell flycheck-flow git-commit gh-md flymd markdown-preview-mode markdown-mode+ markdown-mode yaml-mode web-mode use-package string-inflection scheme-complete package+ move-text elisp-docstring-mode dumb-jump company-flow cl-generic browse-kill-ring))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+
+;; end Autogen
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Python settings                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Lint in python
+(load "~/.emacs.d/flycheck-pycodestyle.el")
+(add-hook 'python-mode-hook 'flycheck-mode)
+
+;; Python docstrings fill-paragraph conforms to community convention
+(add-hook 'python-mode-hook 'python-docstring-mode)
+
+;; Keys for indentation
+(global-set-key (kbd "C-.") #'python-indent-shift-right)
+(global-set-key (kbd "C-,") #'python-indent-shift-left)
+
+;; Treat word_word or wordWord as word boundaries
+(subword-mode +1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+
+;; End Python settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Scheme settings                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Prevent shebang on infolab .scm files from interfering with scheme-mode	
+(defun scheme-mode-for-bash ()
+  (interactive)
+  (if (and
+       (> (length (buffer-string)) 53)
+       (string-match
+	"exec csi .*"
+	(buffer-string)))
+      (scheme-mode)))
+(add-hook 'sh-mode-hook 'scheme-mode-for-bash)
+
+;; Scheme autocomplete
+(autoload 'scheme-smart-complete "scheme-complete" nil t)
+(eval-after-load 'scheme
+  '(define-key scheme-mode-map "\t" 'scheme-complete-or-indent))
+;; Scheme eldoc
+(autoload 'scheme-get-current-symbol-info "scheme-complete" nil t)
+(add-hook 'scheme-mode-hook
+	  (lambda ()
+	    (make-local-variable 'eldoc-documentation-function)
+	    (setq eldoc-documentation-function 'scheme-get-current-symbol-info)
+	    (eldoc-mode)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tramp configuration                                                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq tramp-auto-save-directory "/tmp")
+
+;; Speed up Tramp (https://emacs.stackexchange.com/a/37855)
+(setq remote-file-name-inhibit-cache nil)
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+              vc-ignore-dir-regexp
+              tramp-file-name-regexp))
+(setq tramp-verbose 1)
+;; Other Tramp perf optimizations (git:michaelsilver/emacs-config)
+(setq tramp-completion-reread-directory-timeout nil)
+(customize-set-variable 'tramp-use-ssh-controlmaster-options nil)
+
+;; Open dired buffer for home directory on my favorite computers
+(defun nav ()
+  (interactive)
+  (infolab-ssh "navassa"))
+(defun spr ()
+  (interactive)
+  (infolab-ssh "spratly"))
+(defun wal ()
+  (interactive)
+  (infolab-ssh "wallis"))
+(defun sno ()
+  (interactive)
+  (ssh "henryhu" "snowflake.myddns.me" "~"))
+(defun slu ()
+  (interactive)
+  (ssh "henryhu" "slushy.myddns.me" "~"))
+(defun ice ()
+  (interactive)
+  (ssh "henryhu" "slushy.myddns.me" "/media/henryhu/icecube"))
+(defun rac ()
+  (interactive)
+  (ssh "racecar" "192.168.1.21" "~"))
+(defun nlp ()
+  (interactive)
+  (ssh "ubuntu" "ec2-54-88-185-120.compute-1.amazonaws.com" "~"))
+
+;; Athena dialup, which requires two-factor authentication.  First
+;; passcode prompt: type in MIT passcode.  Second passcode prompt:
+;; type "1" for push, "2" for call, and "3" for SMS.
+(defun ath ()
+  (interactive)
+  (ssh "henryhu" "athena.dialup.mit.edu" "~"))
+
+(defun infolab-ssh (host)
+  (interactive "sHostname: ")
+  (let ((infolab-hostname (concat host ".csail.mit.edu")))
+    (ssh "henryhu" infolab-hostname "~")))
+
+(defun ssh (user host dir)
+  (interactive "sUser: \nsFull Hostname: \nsDirectory: ")
+  (dired (concat "/ssh:" user "@" host ":" dir))
+  ;; Flycheck causes saves to freeze in Tramp
+  ;; (https://github.com/flycheck/flycheck/issues/54)
+  (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
+
+;; End tramp configuration
