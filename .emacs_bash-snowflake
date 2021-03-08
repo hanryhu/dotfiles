@@ -1,0 +1,3 @@
+# BEGIN lie to git to make it shutup
+export TERM=xterm-256color
+# END lie to git to make it shutup

@@ -127,7 +127,6 @@ alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts -
 alias whoami-run='python ~/whoami/scripts/run.py'
 alias astro-test='nosetests -v ~/astroparse/tests && astro-lint'
 alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501,W504'
-alias astro-run='python ~/astroparse/ilearn.py'
 elint () {
     # whoami lint
     lint_files=$(whoami-lint -q | paste -sd " " -)
@@ -160,6 +159,12 @@ autolint () {
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
 }
+alias ai='python ~/astroparse/scripts/astroparser_interactive.py -vsop'
+alias ts='python ~/astroparse/scripts/try_spacy.py'
+function astro () {
+    cd ~/astroparse
+    workon astro
+}
 #END whoami aliases
 #BEGIN fix muted audio macOSX
 alias fix-audio="sudo killall coreaudiod"
@@ -183,7 +188,6 @@ analyze-history () {
 alias gs='git status'
 alias go='git checkout'
 #END git aliases
-
 
 #### ACCESSING REMOTE FILE SYSTEMS
 #BEGIN snowflake scp
