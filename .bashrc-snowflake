@@ -181,6 +181,7 @@ analyze-history () {
 #END analyze-history
 #BEGIN git aliases
 alias gs='git status'
+alias go='git checkout'
 #END git aliases
 
 

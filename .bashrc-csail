@@ -18,6 +18,34 @@ HISTSIZE=3000
 # better which
 alias which=type
 # end better which
+# better mv
+alias mv-mv=/bin/mv
+function maybe-git-mv ()
+{
+    local repo=$(git rev-parse --show-toplevel 2> /dev/null)
+    if [[ -e "${repo}" ]]; then
+	echo "Using git mv -- if you want normal mv use mv-mv";
+	git mv "$@";
+    else
+	mv-mv "$@";
+    fi
+}
+alias mv=maybe-git-mv
+#end better mv
+# better rm
+alias rm-rm=/bin/rm
+function maybe-git-rm ()
+{
+    local repo=$(git rev-parse --show-toplevel 2> /dev/null)
+    if [[ -e "${repo}" ]]; then
+	echo "Using git rm -- if you want normal rm use rm-rm";
+	git rm "$@";
+    else
+	rm-rm "$@";
+    fi
+}
+alias rm=maybe-git-rm
+#end better rm
 # Custom code to switch scrolling
 BASHRC_TOGGLESCRIPT="osascript -e 'tell application \"System Preferences\"
   reveal anchor \"trackpadTab\" of pane id \"com.apple.preference.trackpad\"
@@ -43,10 +71,10 @@ alias mc-start='exec java -Xms1G -Xmx1G -jar server.jar nogui;'
 #END start minecraft server
 #BEGIN whoami aliases
 alias whoami-test='nosetests -v ~/whoami/tests && whoami-lint'
-alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501'
+alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501,W504'
 alias whoami-run='python ~/whoami/scripts/run.py'
 alias astro-test='nosetests -v ~/astroparse/tests && astro-lint'
-alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501'
+alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501,W504'
 alias astro-run='python ~/astroparse/ilearn.py'
 elint () {
     # whoami lint
@@ -68,14 +96,14 @@ autolint () {
     # whoami lint
     lint_files=$(whoami-lint -q | paste -sd " " -)
     if [ ! -z "$lint_files" ]; then
-	autopep8 --in-place --ignore=E501 $@ $lint_files
+	autopep8 --in-place --ignore=E501,W504 $@ $lint_files
     else
 	echo "Nothing to lint in whoami! Yay :)"
     fi
     # astroparse lint
     lint_files=$(astro-lint -q | paste -sd " " -)
     if [ ! -z "$lint_files" ]; then
-	autopep8 --in-place --ignore=E501 $@ $lint_files
+	autopep8 --in-place --ignore=E501,W504 $@ $lint_files
     else
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
@@ -106,6 +134,11 @@ alias pbpaste='xclip -selection clipboard -o'
 #BEGIN print file to betty
 alias print-betty='lpoptions -d betty && lp'
 #END print file to betty
+#BEGIN bluetooth for linux
+alias start-bluetooth='sudo /etc/init.d/bluetooth start'
+#END bluetooth for linux
+
+#END Useful aliases
 
 #This comment line is important toot
 
@@ -126,7 +159,54 @@ export PATH="$PATH:$HOME/.rvm/bin"
 
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" # Load RVM into a shell session *as a function*
 
+# For example, contains pycodestyle
+export PATH="$PATH:$HOME/.local/bin"
+
+# For some reason, this has recently been `cat`.  That's bad for `git log`, for example.
+export PAGER=less
+
 # added by travis gem
 [ -f /afs/csail.mit.edu/u/h/henryhu/.travis/travis.sh ] && source /afs/csail.mit.edu/u/h/henryhu/.travis/travis.sh
 
 source ~/.wd-history
+
+
+##########################################################################
+# StanfordNLP server setup                                               #
+# From https://stanfordnlp.github.io/CoreNLP.                            #
+##########################################################################
+# for Java
+export CORENLP_HOME=/archive/infolab/corpora/stanfordnlp/stanford-corenlp-4.2.0/
+export CLASSPATH=$CLASSPATH:$CORENLP_HOME/*:
+# for Python (NLTK)
+export STANFORD_MODELS=$CORENLP_HOME
+export STANFORD_NLP_PORT=9000
+# `stanford-nlp` by itself starts a REPL.
+# `stanford-nlp -file filename` creates an output file
+# filename.out with parse information.
+function stanford-nlp () {
+    echo "'java -Xmx5g edu.stanford.nlp.pipeline.StanfordCoreNLP'";
+    echo "Estimated startup time is 1 minute.";
+    echo "-----------------------------------";
+    # From https://stanfordnlp.github.io/CoreNLP/#quickstart.
+    java -Xmx5g edu.stanford.nlp.pipeline.StanfordCoreNLP $@;
+}
+function stanford-nlp-server () {
+
+    command=$1
+
+    if [[ -z $command ]]; then
+        echo "Usage: stanford-nlp-server [start|stop]";
+    elif [ $command == "start" ]; then        
+        echo "Starting the Stanford CoreNLP server..."
+        echo "java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port $STANFORD_NLP_PORT -timeout 15000";
+        nohup java -mx4g edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port $STANFORD_NLP_PORT -timeout 15000 &
+        echo "Access the server in a web browser at http://localhost:$STANFORD_NLP_PORT"
+    elif [ $command == "stop" ]; then
+        echo "Stopping the Stanford CoreNLP server..."
+        wget "localhost:$STANFORD_NLP_PORT/shutdown?key=`cat /tmp/corenlp.shutdown`" -O -
+        echo "Done"
+    else
+        echo "Usage: stanford-nlp-server [start|stop]";
+    fi
+}
