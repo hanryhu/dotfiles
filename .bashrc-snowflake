@@ -71,6 +71,10 @@ function maybe-git-rm ()
 }
 alias rm=maybe-git-rm
 #end better rm
+# delete all merged branches
+# From https://devconnected.com/how-to-clean-up-git-branches/
+alias git-clean-branches='git branch --merged | egrep -v "(^\*|master|dev)" | xargs git branch -d'
+# end delete all merged branches
 # Custom code to toggle sidecar for Glacier
 BASHRC_SIDECARSCRIPT="osascript -e 'set deviceName to \"Glacier\"
 
