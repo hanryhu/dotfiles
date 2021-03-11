@@ -159,8 +159,8 @@ autolint () {
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
 }
-alias ai='python ~/astroparse/scripts/astroparser_interactive.py -vsop'
-alias ts='python ~/astroparse/scripts/try_spacy.py'
+alias ai='astro; python ~/astroparse/scripts/astroparser_interactive.py -vsop'
+alias ts='astro; python ~/astroparse/scripts/try_spacy.py'
 function astro () {
     cd ~/astroparse
     workon astro
@@ -186,7 +186,6 @@ analyze-history () {
 #END analyze-history
 #BEGIN git aliases
 alias gs='git status'
-alias go='git checkout'
 #END git aliases
 
 #### ACCESSING REMOTE FILE SYSTEMS
