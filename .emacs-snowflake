@@ -13,10 +13,10 @@
 
 (setq use-package-always-ensure t)
 
-(package-refresh-contents)
 (setq henryhu-packages
       (list 'browse-kill-ring
-	    'company-flow    
+	    'company-flow
+            'csv
 	    'dashboard			; Depends on Emacs 25.3
 	    'dumb-jump
 	    'flycheck-flow   
@@ -25,7 +25,7 @@
 	    'magit           
 	    'move-text       
 	    'prettier-js
-            'python-docstring
+           'python-docstring
 	    'rg
 	    'string-inflection
 	    'scheme-complete
@@ -102,10 +102,12 @@
   (text-scale-adjust -2))
 ;;; Make zooming global
 ;;; https://stackoverflow.com/questions/18783227/emacs-zoom-in-out-globally
-(defadvice text-scale-increase (around all-buffers (arg) activate)
-  (dolist (buffer (buffer-list))
-    (with-current-buffer buffer
-      ad-do-it)))
+;; Broken because new buffers are not zoomed in and zooming them in
+;; causes everyone else to zoom in too
+;; (defadvice text-scale-increase (around all-buffers (arg) activate)
+;;   (dolist (buffer (buffer-list))
+;;     (with-current-buffer buffer
+;;       ad-do-it)))
 
 ;;;Typed text replaces the selection
 (delete-selection-mode 1)
@@ -117,6 +119,13 @@
 
 ;;; EDiffs split with windows on left and right instead of top and bottom
 (setq ediff-split-window-function (quote split-window-horizontally))
+
+;;; Keep windows balanced -- allows C-x 3 C-x 3 to make 3 equal
+;;; vertical windows https://stackoverflow.com/a/58136628
+(advice-add 'split-window-right :after #'balance-windows)
+;;; Can't rebalance after delete-window because it throws errors
+;;; whenever deleting windows from completion actions etc.
+;;; (advice-add 'delete-window :after #'balance-windows)
 
 (tool-bar-mode -1)
 (toggle-frame-maximized)
@@ -155,11 +164,6 @@
 ;; ;; Try to get colors to display in M-x shell, e.g., in binding.pry
 ;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
 ;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
-
-;; Open shell in same window, even on emacs 26
-;; https://github.com/syl20bnr/spacemacs/issues/6820
-(push (cons "\\*shell\\*" display-buffer--same-window-action)
-      display-buffer-alist)
 
 ;; End Window system settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -221,6 +225,13 @@
 
 ;; Used to continue search after M-x tags-search RET <term> RET
 (global-set-key "\M-," 'tags-loop-continue)
+
+(fset 'add-index-to-proper-noun
+   [?\C-\M-s ?\[ ?A ?- ?Z ?\] return ?\C-\M-f ?+ ?1])
+(global-set-key "\C-\M-z" 'add-index-to-proper-noun)
+(fset 'jump-to-texp
+   [?\C-s ?\[ return])
+(global-set-key "\C-\M-x" 'jump-to-texp)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Full width comment box                                                 ;;
@@ -323,7 +334,7 @@
  '(inhibit-startup-screen t)
  '(package-selected-packages
    (quote
-    (git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow))))
+    (csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -349,7 +360,21 @@
 (global-set-key (kbd "C-,") #'python-indent-shift-left)
 
 ;; Treat word_word or wordWord as word boundaries
-(subword-mode +1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+(global-subword-mode 1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+
+(defun ts ()
+  (interactive)
+  (astro "ts"))
+
+(defun ai ()
+  (interactive)
+  (astro "ai"))
+
+(defun astro (cmd)
+  (interactive "sCmd (ts/ai) (try_spacy/astroparser_interactive): ")
+  ;; Wish I knew how to start buffer with `astro` bash cmd.  That
+  ;; would go here.
+  (shell (concat "*" cmd "*")))
 
 ;; End Python settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -443,6 +468,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MacOS specific configuration                                           ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Open shell in same window, even on emacs 26
+;; https://github.com/syl20bnr/spacemacs/issues/6820
+(push (cons "\\*shell\\*" display-buffer--same-window-action)
+      display-buffer-alist)
+(push (cons "\\*ai\\*" display-buffer--same-window-action)
+      display-buffer-alist)
+(push (cons "\\*ts\\*" display-buffer--same-window-action)
+      display-buffer-alist)
 ;; https://medium.com/@lynzt/mac-emacs-and-flycheck-executable-not-found-34e972759555
 (package-install 'exec-path-from-shell)
 (exec-path-from-shell-initialize)
