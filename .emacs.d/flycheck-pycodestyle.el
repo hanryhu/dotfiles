@@ -15,7 +15,7 @@
 (flycheck-define-checker python-pycodestyle
   "A Python syntax and style checker using pycodestyle (former pep8)."
 
-  :command ("pycodestyle" "--ignore=E501" source-inplace)
+  :command ("pycodestyle" "--ignore=E501,W504" source-inplace)
   :error-patterns
   ((error line-start (file-name) ":" line ":" column ":" (message) line-end)
    (warning line-start (file-name) ":" line ":" column ":" (message) line-end))

@@ -11,6 +11,9 @@ export BASH_SILENCE_DEPRECATION_WARNING=1
 
 
 ######## USEFUL ALIASES
+# BEGIN update bashrc
+alias sb="source ~/.bashrc"
+# END update bashrc
 # # BEGIN set-up Athena
 # alias a="add stata scala git"
 # # END set-up Athena
@@ -129,7 +132,7 @@ alias chrome='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
 alias whoami-test='nosetests -v ~/whoami/tests && whoami-lint'
 alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501,W504'
 alias whoami-run='python ~/whoami/scripts/run.py'
-alias astro-test='nosetests -v ~/astroparse/tests && astro-lint'
+alias astro-test='python -m nose2 -v tests && astro-lint'
 alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501,W504'
 elint () {
     # whoami lint
@@ -165,6 +168,8 @@ autolint () {
 }
 alias ai='astro; python ~/astroparse/scripts/astroparser_interactive.py -vsop'
 alias ts='astro; python ~/astroparse/scripts/try_spacy.py'
+alias rlwrap-ai='astro; rlwrap python ~/astroparse/scripts/astroparser_interactive.py -vsop'
+alias rlwrap-ts='astro; rlwrap python ~/astroparse/scripts/try_spacy.py'
 function astro () {
     cd ~/astroparse
     workon astro
@@ -329,4 +334,23 @@ function fix-webcam {
     echo "------------"
     kill $(jobs -p node)
     popd
+}
+
+function for-loop-example {
+    # field separator
+    IFS=$(echo -en "\n\b")
+    for i in $(find .)
+    do
+        ffmpeg -i $i $i.mp3
+    done
+}
+
+function start-ddclient {
+    # emacs /usr/local/etc/ddclient/ddclient.conf
+    sudo /usr/local/opt/ddclient/sbin/ddclient -verbose -noquiet
+}
+
+function print-betty () {
+    scp $1 spratly.csail.mit.edu:~/tmp-to-print;
+    ssh spratly.csail.mit.edu "lpoptions -d betty && lp tmp-to-print"
 }
