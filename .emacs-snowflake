@@ -16,7 +16,6 @@
 (setq henryhu-packages
       (list 'browse-kill-ring
 	    'company-flow
-            'csv
 	    'dashboard			; Depends on Emacs 25.3
 	    'dumb-jump
 	    'flycheck-flow   
@@ -42,6 +41,10 @@
 
 ;; Possibly fixes some package-install: Bad Request errors
 ;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+
+;; Set bash for M-x shell, M-x shell-command
+(setq explicit-shell-file-name "/bin/bash")
+(setenv "SHELL" "/bin/bash")
 
 ;; End package setup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -293,14 +296,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;; DUMB JUMP CONFIG
-;; (setq dumb-jump-default-project "~/")
-;; (setq dumb-jump-force-searcher 'rg)
-;; ;; Dumb jump mode overwrites C-M-q, just name each useful command
-;; ;; instead.
-;; (global-set-key (kbd "M-.") #'dumb-jump-go)
+(setq dumb-jump-default-project "~/")
+(setq dumb-jump-force-searcher 'rg)
+;; Dumb jump mode overwrites C-M-q, just name each useful command
+;; instead.
+(global-set-key (kbd "M-.") #'dumb-jump-go)
 ;; (global-set-key (kbd "C-.") #'dumb-jump-back)
-;; (global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
-;; (global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
+(global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
+(global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
 ;;;;;;;;;;;; END DUMB JUMP CONFIG
 
 ;; Use FZF to find files by name in the global context
@@ -333,8 +336,7 @@
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   (quote
-    (csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow))))
+   '(spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
