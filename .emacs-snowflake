@@ -1,4 +1,16 @@
 ;; -*- mode: Emacs-Lisp;-*-
+;;; Installing emacs on Mac:
+;;;
+;;; - Recommend: https://github.com/daviderestivo/homebrew-emacs-head
+;;; and install --with-cocoa for GUI, but it has some periodic
+;;; flickering.
+;;; 
+;;; - Alternative: https://github.com/railwaycat/homebrew-emacsmacport
+;;; but font looks weird and doesn't come with GUI `emacs` terminal
+;;; command
+;;;
+;;; - Second alternative: https://emacsformacosx.com/ but also doesn't
+;;; come with `emacs` terminal command.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Package setup                                                          ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
