@@ -153,6 +153,26 @@
 
 ;; Enable line numbers globally
 ;; (global-linum-mode t) ; very slow for big files, esp. skip to file start
+;; Enable line numbers in Emacs >26
+;; (https://www.emacswiki.org/emacs/LineNumbers)
+(require 'display-line-numbers)
+
+(defcustom display-line-numbers-exempt-modes
+  '(vterm-mode eshell-mode shell-mode term-mode ansi-term-mode dashboard-mode)
+  "Major modes on which to disable line numbers."
+  :group 'display-line-numbers
+  :type 'list
+  :version "green")
+
+(defun display-line-numbers--turn-on ()
+  "Turn on line numbers except for certain major modes.
+Exempt major modes are defined in `display-line-numbers-exempt-modes'."
+  (unless (or (minibufferp)
+              (member major-mode display-line-numbers-exempt-modes))
+    (display-line-numbers-mode)))
+
+(when (version<= "26.0.50" emacs-version )
+  (global-display-line-numbers-mode))
 
 ;; Prevent slowdown from major modes in files with longlines
 ;; Especially python-mode
@@ -271,6 +291,19 @@
 (fset 'jump-to-texp
    [?\C-s ?\[ return])
 (global-set-key "\C-\M-x" 'jump-to-texp)
+
+(global-set-key (kbd "M-$") #'shell)
+(global-set-key (kbd "M-*") #'shell)
+
+;;; In minibuffer and isearch use shift+enter for quoted return
+;;; https://stackoverflow.com/questions/19757612/how-to-redefine-a-key-inside-a-minibuffer-mode-map
+;;; Never worked
+;; (defun insert-quoted-return+ ()
+;;   (interactive)
+;;   (setq unread-command-events
+;;         (listify-key-sequence
+;;          (kbd "C-q C-j"))))
+;; (define-key minibuffer-local-isearch-map "S-RET" 'insert-quoted-return+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Full width comment box                                                 ;;
@@ -497,6 +530,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (setq tramp-auto-save-directory "/tmp")
+
+;; Turn off auto backups (file~) over tramp because it leads to
+;; frequent "save failed" errors.
+(add-to-list 'backup-directory-alist
+             (cons tramp-file-name-regexp nil))
 
 ;; Speed up Tramp (https://emacs.stackexchange.com/a/37855)
 (setq remote-file-name-inhibit-cache nil)
