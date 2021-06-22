@@ -26,20 +26,26 @@
 (setq use-package-always-ensure t)
 
 (setq henryhu-packages
-      (list 'browse-kill-ring
+      (list 'alert                      ; for slack
+            'browse-kill-ring
 	    'company-flow
+            'counsel                    ; for ivy
 	    'dashboard			; Depends on Emacs 25.3
 	    'dumb-jump
+            'el-get                     ; for slack
+            'emojify                    ; for slack
 	    'flycheck-flow   
-	    'fzf             
+	    'fzf
+            'ivy
 	    'inf-ruby        
 	    'magit           
 	    'move-text       
 	    'prettier-js
-           'python-docstring
+            'python-docstring
 	    'rg
 	    'string-inflection
 	    'scheme-complete
+            'swiper                     ; for ivy
 	    'use-package     
 	    'web-mode        
 	    'yaml-mode))
@@ -161,6 +167,24 @@
                 (search-forward-regexp ".\\{1000\\}" 50000 t)
                 (y-or-n-p "Very long lines detected - continue without a major mode? "))
        (fundamental-mode)))))
+
+;;; Use Ivy
+(ivy-mode)
+(setq enable-recursive-minibuffers t)
+;; enable this if you want `swiper' to use it
+;; (setq search-default-mode #'char-fold-to-regexp)
+(global-set-key "\C-r" 'swiper)
+(global-set-key "\C-s" 'swiper)
+(global-set-key (kbd "C-c C-r") 'ivy-resume)
+(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-x C-f") 'counsel-find-file)
+(global-set-key (kbd "C-c g") 'counsel-git)
+(global-set-key (kbd "C-c j") 'counsel-git-grep)
+(global-set-key (kbd "C-c k") 'counsel-ag)
+(global-set-key (kbd "C-x l") 'counsel-locate)
+(global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+
+(define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
 
 ;; Change startup splash screen to be more useful.
 (use-package dashboard
@@ -290,7 +314,7 @@
 (fset 'investigate-whoami-input-without-subject-substitutions
       [?\C-x ?o ?\C-r ?| ?| ?\C-r return ?\C-  ?\C-r ?> ?  return ?\C-f ?\C-f ?\M-w ?\M-> ?\C-y return ?\C-x ?o])
 (global-set-key (kbd "C-c C-w") 'copy-paste-whoami-input-line)
-(global-set-key (kbd "C-c C-s") 'investigate-whoami-input-without-subject-substitutions)
+;; (global-set-key (kbd "C-c C-s") 'investigate-whoami-input-without-subject-substitutions)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org mode                                                               ;;
@@ -301,6 +325,58 @@
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Slack integration                                                      ;;
+;; from https://github.com/yuya373/emacs-slack                            ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Slack integration
+(use-package slack
+  :commands (slack-start)
+  :init
+  (setq slack-buffer-emojify t)
+  (setq slack-prefer-current-team t)
+  :config
+  (slack-register-team
+   :name "infolab-csail"
+   :default t
+   ;; In ~/.authinfo:
+   ;;    machine infolab-csail.slack.com login henryhu@mit.edu password XXX
+   :token (auth-source-pick-first-password
+           :host "infolab-csail.slack.com"
+           :user "henryhu@mit.edu")
+   :full-and-display-names t))
+
+(use-package alert
+  :commands (alert)
+  :init
+  (setq alert-default-style 'notifier))
+
+(global-set-key (kbd "C-c C-s s") 'slack-start)
+(global-set-key (kbd "C-c e") 'emojify-insert-emoji)
+(defun setup-slack-keymaps ()
+  ;; Surprise! Rebind after slack init
+  (global-set-key (kbd "C-c C-s s") 'slack-select-rooms)
+
+  (define-key slack-info-mode-map "\C-x\C-v" 'slack-room-update-messages)
+  (define-key slack-mode-map "\C-x\C-v" 'slack-room-update-messages)
+  (define-key slack-mode-map "\C-x\C-k" 'slack-buffer-kill)
+  (define-key slack-mode-map "\C-c\C-a" 'slack-message-add-reaction)
+  (define-key slack-mode-map "\C-c\C-r" 'slack-message-remove-reaction)
+  (define-key slack-mode-map "\C-c\C-s" 'slack-message-show-reaction-users)
+  (define-key slack-mode-map "\C-c\C-e" 'slack-message-edit)
+  (define-key slack-mode-map "\C-c\C-d" 'slack-message-delete)
+  (define-key slack-mode-map "\C-c\C-m" 'slack-message-embed-mention)
+  (define-key slack-mode-map "\C-c\C-c" 'slack-message-embed-channel)
+  (define-key slack-mode-map "\M-n" 'slack-buffer-goto-next-message)
+  (define-key slack-mode-map "\M-p" 'slack-buffer-goto-prev-message)
+  (define-key slack-mode-map "\C-c\C-u" 'slack-file-upload)
+  (define-key slack-edit-message-mode-map "\C-c\C-k" 'slack-message-cancel-edit)
+  (define-key slack-edit-message-mode-map "\C-c\C-m" 'slack-message-embed-mention)
+  (define-key slack-edit-message-mode-map "\C-c\C-ec" 'slack-message-embed-channel)
+  (define-key slack-mode-map "\C-c\C-u" 'slack-file-upload))
+(advice-add 'slack-start :after #'setup-slack-keymaps)
 
 ;; End common commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -333,7 +409,7 @@
 ;; Kill the line at point, change buffer, rg the line, and return
 (fset 'move-line-into-other-buffer
       [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
-(global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
+;; (global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
 
 ;; End Stripe specific settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -348,7 +424,7 @@
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   '(spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
+   '(emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -493,5 +569,6 @@
 ;; https://medium.com/@lynzt/mac-emacs-and-flycheck-executable-not-found-34e972759555
 (package-install 'exec-path-from-shell)
 (exec-path-from-shell-initialize)
+(setenv "TERM" "dumb")
 
 ;; End MacOS specific configuration
