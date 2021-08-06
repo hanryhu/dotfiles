@@ -100,6 +100,8 @@
 (defun activate-horizontal-mode ()
   (interactive)
   (horizontal-scroll-bar-mode 1)
+  ;; Avoid hscroll when there are long lines, e.g., in test output.
+  (setq auto-hscroll-mode nil)
   (toggle-truncate-lines))
 (defun scroll-all-the-way-right ()
   (interactive)
