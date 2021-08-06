@@ -116,7 +116,7 @@
   "make the point move like C-l in current window"
   (interactive)
   (if (equal truncate-lines t)
-      (let ((mid-screen (/ (window-width) 2))
+      (let ((mid (/ (window-width) 2))
             (line-len (save-excursion (end-of-line) (current-column)))
             (cur (current-column))
             (cur-scroll (window-hscroll)))
