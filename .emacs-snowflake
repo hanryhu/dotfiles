@@ -6,8 +6,6 @@
 ;;; flickering.
 ;;; 
 ;;; - Alternative: https://github.com/railwaycat/homebrew-emacsmacport
-;;; but font looks weird and doesn't come with GUI `emacs` terminal
-;;; command
 ;;;
 ;;; - Second alternative: https://emacsformacosx.com/ but also doesn't
 ;;; come with `emacs` terminal command.
@@ -31,9 +29,11 @@
 	    'company-flow
             'counsel                    ; for ivy
 	    'dashboard			; Depends on Emacs 25.3
+            'diminish
 	    'dumb-jump
             'el-get                     ; for slack
             'emojify                    ; for slack
+            'filladapt
 	    'flycheck-flow   
 	    'fzf
             'ivy
@@ -45,7 +45,6 @@
 	    'rg
 	    'string-inflection
 	    'scheme-complete
-            'swiper                     ; for ivy
 	    'use-package     
 	    'web-mode        
 	    'yaml-mode))
@@ -89,9 +88,28 @@
   (setq mouse-sel-mode t)
   )
 
+;; Solid, unblinking cursor
+(blink-cursor-mode 0)
+
 ;; ;;;Set window height
 ;; (if (window-system)
 ;;   (set-frame-height (selected-frame) 50))
+
+;; Scrolling horizontally.  Scroll directions are sort of "backwards"
+;; in that scroll-all-the-way-right corresponds to C-a instead of C-e.
+(defun activate-horizontal-mode ()
+  (interactive)
+  (horizontal-scroll-bar-mode 1)
+  (toggle-truncate-lines))
+(defun scroll-all-the-way-right ()
+  (interactive)
+  (scroll-right 1000000000))
+(global-set-key (kbd "C-M-o") 'activate-horizontal-mode)
+(put 'scroll-left 'disabled nil)
+(put 'scroll-right 'disabled nil)
+(global-set-key (kbd "M-u") 'scroll-all-the-way-right)
+(global-set-key (kbd "M-i") 'scroll-right)
+(global-set-key (kbd "M-o") 'scroll-left)
 
 ;;; Start in fullscreen
 (defun my-fullscreen ()
@@ -132,6 +150,23 @@
 
 ;;;Typed text replaces the selection
 (delete-selection-mode 1)
+
+;;; Autodetect bullets (- xxx) etc. when filling lines
+(autoload 'turn-on-filladapt-mode "filladapt" "Turn on the glorious Filladapt mode.")
+
+(defun asf-turn-on-filladapt ()
+  (unless (eq major-mode 'org-mode)
+    (turn-on-filladapt-mode)
+    (diminish 'filladapt-mode)))
+
+;; Filladapt is old (but great!), so we can't turn it on just
+;; everywhere. We have python-docstring-mode for python so it's mainly
+;; markdown lists.
+(mapc (lambda (hook)
+        (add-hook hook 'asf-turn-on-filladapt))
+      '(text-mode-hook
+        markdown-mode-hook
+        global-magit-file-mode-hook))
 
 ;;;When point is on a paired character the other is highlighted at no delay
 (setq show-paren-delay 0)
@@ -188,13 +223,15 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
                 (y-or-n-p "Very long lines detected - continue without a major mode? "))
        (fundamental-mode)))))
 
-;;; Use Ivy
+;;; Use Ivy, especially for emoji
 (ivy-mode)
 (setq enable-recursive-minibuffers t)
-;; enable this if you want `swiper' to use it
+;;; Good for matching unicode chars
 ;; (setq search-default-mode #'char-fold-to-regexp)
-(global-set-key "\C-r" 'swiper)
-(global-set-key "\C-s" 'swiper)
+;;; Disabled because can't go backwards.  If interested in restoring,
+;;; try https://github.com/abo-abo/swiper/issues/1172.
+;; (global-set-key "\C-r" 'swiper)
+;; (global-set-key "\C-s" 'swiper)
 (global-set-key (kbd "C-c C-r") 'ivy-resume)
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
@@ -203,6 +240,14 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (global-set-key (kbd "C-c k") 'counsel-ag)
 (global-set-key (kbd "C-x l") 'counsel-locate)
 (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+
+(setq ivy-count-format "%d/%d ")
+;;; ~/ is muscle memory.  See
+;;; https://github.com/abo-abo/swiper/commit/83121769b411a49d1e58aab89e8c800810b223c0
+(setq ivy-magic-tilde '())
+;;; Match queries in any order "example for" matches "for example"
+(setq ivy-re-builders-alist
+      '((t . ivy--regex-ignore-order)))
 
 (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
 
@@ -270,6 +315,19 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
           (set-visited-file-name new-name)
           (set-buffer-modified-p nil))))))
 
+(defun rm-file-and-buffer (confirm)
+  "Removes both current buffer and file it's visiting."
+  (interactive "sEnter n to abort: ")
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (if (equal "n" confirm)
+          (message "Aborted!")
+        (progn
+          (delete-file filename)
+          (kill-buffer))))))
+
 ;; Jump forward to the next argument in a function or item in a list,
 ;; and put it on a new line.  To re-indent a function, use C-M-j till
 ;; you see the end-of-list, then use C-M-h once.  If a comma is
@@ -287,10 +345,13 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (fset 'add-index-to-proper-noun
    [?\C-\M-s ?\[ ?A ?- ?Z ?\] return ?\C-\M-f ?+ ?1])
-(global-set-key "\C-\M-z" 'add-index-to-proper-noun)
+;; (global-set-key "\C-\M-z" 'add-index-to-proper-noun)
 (fset 'jump-to-texp
    [?\C-s ?\[ return])
 (global-set-key "\C-\M-x" 'jump-to-texp)
+(fset 'astroparse-test-result-to-list-item
+   (kmacro-lambda-form [?\C-s ?\[ return ?\C-b ?\C-  ?\C-a backspace ?\' ?\C-e ?\' ?, ?\C-n ?\C-a] 0 "%d"))
+(global-set-key "\C-\M-z" 'astroparse-test-result-to-list-item)
 
 (global-set-key (kbd "M-$") #'shell)
 (global-set-key (kbd "M-*") #'shell)
@@ -327,6 +388,11 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; Write a commit message in emacs.  To exit, do C-c C-c.  Plays well
 ;; with Tramp.
 (global-set-key (kbd "C-c c") 'magit-commit-create)
+;; Beginnings of conversion to the magit cult
+(global-set-key (kbd "C-c x") 'magit-commit-extend) ; --amend --no-edit
+(global-set-key (kbd "C-c r") 'magit-branch)
+(global-set-key (kbd "C-c t") 'magit-status)
+(global-set-key (kbd "C-c m") 'magit-status)
 
 ;; https://www.emacswiki.org/emacs/BuildTags#toc4
 (defun create-tags (dir-name glob)
@@ -386,11 +452,11 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   :init
   (setq alert-default-style 'notifier))
 
-(global-set-key (kbd "C-c C-s s") 'slack-start)
+(global-set-key (kbd "C-c s") 'slack-start)
 (global-set-key (kbd "C-c e") 'emojify-insert-emoji)
 (defun setup-slack-keymaps ()
   ;; Surprise! Rebind after slack init
-  (global-set-key (kbd "C-c C-s s") 'slack-select-rooms)
+  (global-set-key (kbd "C-c s") 'slack-select-rooms)
 
   (define-key slack-info-mode-map "\C-x\C-v" 'slack-room-update-messages)
   (define-key slack-mode-map "\C-x\C-v" 'slack-room-update-messages)
@@ -422,8 +488,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; Dumb jump mode overwrites C-M-q, just name each useful command
 ;; instead.
 (global-set-key (kbd "M-.") #'dumb-jump-go)
-;; (global-set-key (kbd "C-.") #'dumb-jump-back)
-(global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
+(global-set-key (kbd "C-M-.") #'dumb-jump-back)
+;; M-? is xref-find-references
+;; (global-set-key (kbd "C-M-.") #'dumb-jump-go-prompt)
 (global-set-key (kbd "C-M-,") #'dumb-jump-quick-look)
 ;;;;;;;;;;;; END DUMB JUMP CONFIG
 
@@ -440,8 +507,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; (global-set-key "\C-\M-y" 'replace-sexp-at-point)
 
 ;; Kill the line at point, change buffer, rg the line, and return
-(fset 'move-line-into-other-buffer
-      [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
+;; (fset 'move-line-into-other-buffer
+;;       [?\C-k ?\C-k ?\C-n ?\C-p ?\C-x ?o ?r ?g ?  ?\C-y return ?\C-x ?o])
 ;; (global-set-key "\C-c\C-r\C-g" 'move-line-into-other-buffer)
 
 ;; End Stripe specific settings
@@ -457,13 +524,13 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   '(emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
+   '(visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(default ((t (:height 150 :family "Menlo")))))
 
 
 ;; end Autogen
@@ -608,5 +675,22 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (package-install 'exec-path-from-shell)
 (exec-path-from-shell-initialize)
 (setenv "TERM" "dumb")
+
+;; For homebrew-macport
+(global-set-key [(hyper a)] 'mark-whole-buffer)
+(global-set-key [(hyper v)] 'yank)
+(global-set-key [(hyper c)] 'kill-ring-save)
+(global-set-key [(hyper s)] 'save-buffer)
+(global-set-key [(hyper l)] 'goto-line)
+(global-set-key [(hyper w)]
+                (lambda () (interactive) (delete-window)))
+(global-set-key [(hyper z)] 'undo)
+
+;; mac switch meta key
+(setq mac-option-modifier 'meta)
+(setq mac-command-modifier 'hyper)
+
+;; Fira Code ligatures for forall, etc
+;; https://github.com/tonsky/FiraCode/issues/211#issuecomment-239058632
 
 ;; End MacOS specific configuration
