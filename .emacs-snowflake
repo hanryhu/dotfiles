@@ -104,12 +104,33 @@
 (defun scroll-all-the-way-right ()
   (interactive)
   (scroll-right 1000000000))
+(defun scroll-right-and-move-point ()
+  (interactive)
+  (scroll-right)
+  (move-to-column (max 0 (- (current-column) (window-width)))))
+(defun scroll-left-and-move-point ()
+  (interactive)
+  (scroll-left)
+  (move-to-column (+ (current-column) (window-width))))
+(defun my-horizontal-recenter ()
+  "make the point move like C-l in current window"
+  (interactive)
+  (if (equal truncate-lines t)
+      (let ((mid-screen (/ (window-width) 2))
+            (line-len (save-excursion (end-of-line) (current-column)))
+            (cur (current-column))
+            (cur-scroll (window-hscroll)))
+        (if (< mid cur)
+            (set-window-hscroll (selected-window)
+                                (- cur mid))))))
 (global-set-key (kbd "C-M-o") 'activate-horizontal-mode)
 (put 'scroll-left 'disabled nil)
 (put 'scroll-right 'disabled nil)
+;; Overrides some keybindings that I don't use
 (global-set-key (kbd "M-u") 'scroll-all-the-way-right)
-(global-set-key (kbd "M-i") 'scroll-right)
-(global-set-key (kbd "M-o") 'scroll-left)
+(global-set-key (kbd "M-l") 'my-horizontal-recenter)
+(global-set-key (kbd "M-i") 'scroll-right-and-move-point)
+(global-set-key (kbd "M-o") 'scroll-left-and-move-point)
 
 ;;; Start in fullscreen
 (defun my-fullscreen ()
@@ -257,7 +278,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   :diminish dashboard-mode
   :config
   (setq dashboard-banner-logo-title "Welcome to emacs!")
-  (setq dashboard-startup-banner "/Users/henryhu/cropped_stata.jpg")
+  (setq dashboard-startup-banner "/Users/henryhu/Pictures/lake.jpg")
   (setq dashboard-items '((recents  . 10)
                           (bookmarks . 10)))
   (dashboard-setup-startup-hook))	; Depends on emacs 25.3
