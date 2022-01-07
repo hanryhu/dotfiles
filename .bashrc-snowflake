@@ -3,15 +3,17 @@
 complete -cf sudo
 #END better autocomplete for sudo
 # BEGIN custom code to set prompt
-export PS1="\w$ "
+export PS1="\h:\w\$ "
 # End custom code to set prompt
 # BEGIN suppress bash warning
+export SHELL=/bin/bash
 export BASH_SILENCE_DEPRECATION_WARNING=1
 # End suppress bash warning
 
 
 ######## USEFUL ALIASES
 # BEGIN update bashrc
+alias eb="emacs ~/.bashrc"
 alias sb="source ~/.bashrc"
 # END update bashrc
 # # BEGIN set-up Athena
@@ -76,8 +78,23 @@ alias rm=maybe-git-rm
 #end better rm
 # delete all merged branches
 # From https://devconnected.com/how-to-clean-up-git-branches/
-alias git-clean-branches='git branch --merged | egrep -v "(^\*|master|dev)" | xargs git branch -d'
+alias git-clean-branches='git branch --color=never --merged | egrep -v "(^\*|master|dev)" | xargs git branch -d'
 # end delete all merged branches
+# Begin git cherry-pick alias
+alias gcp='git cherry-pick'
+# end git cherry-pick alias
+# Begin git pull origin master alias
+function gpom ()
+{
+    echo 'git pull origin master;'
+    git pull origin master;
+}
+# end git pull origin master alias
+# Begin git checkout alias
+# alias go='git checkout'
+alias gb='git branch'
+alias gob='git checkout -b'
+# end git checkout alias
 # Custom code to toggle sidecar for Glacier
 BASHRC_SIDECARSCRIPT="osascript -e 'set deviceName to \"Glacier\"
 
@@ -109,7 +126,12 @@ end tell
 
 quit application \"System Preferences\"'"
 alias natural=$BASHRC_TOGGLESCRIPT
-alias n=natural
+alias nt=natural
+BASHRC_DOCKSCRIPT="osascript -e 'tell application \"System Events\"
+    tell dock preferences to set autohide to not autohide
+end tell'"
+alias docktoggle=$BASHRC_DOCKSCRIPT
+alias dt=docktoggle
 # End custom code to toggle scrolling
 # Begin ls color setup
 alias ls='ls -GpF'
@@ -132,7 +154,8 @@ alias chrome='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
 alias whoami-test='nosetests -v ~/whoami/tests && whoami-lint'
 alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501,W504'
 alias whoami-run='python ~/whoami/scripts/run.py'
-alias astro-test='python -m nose2 -v tests && astro-lint'
+alias astro-test='astro && astro-lint && python -m nose2 -v'
+alias ast=astro-test
 alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501,W504'
 elint () {
     # whoami lint
@@ -167,12 +190,25 @@ autolint () {
     fi
 }
 alias ai='astro; python ~/astroparse/scripts/astroparser_interactive.py -vsop'
-alias ts='astro; python ~/astroparse/scripts/try_spacy.py'
+alias aib='astrob; python ~/astroparse2/scripts/astroparser_interactive.py -vsop'
+alias ts='astro; astroparse-try-parsers'
+alias tsb='astrob; astroparse-try-parsers'
 alias rlwrap-ai='astro; rlwrap python ~/astroparse/scripts/astroparser_interactive.py -vsop'
 alias rlwrap-ts='astro; rlwrap python ~/astroparse/scripts/try_spacy.py'
 function astro () {
     cd ~/astroparse
     workon astro
+}
+function astrob () {
+    # astro-backup
+    cd ~/astroparse2
+    workon astrob
+}
+function astro3 () {
+    workon astro3 && rmvirtualenv astro && cpvirtualenv astro3 astro && astro
+}
+function astro2 () {
+    workon astro2 && rmvirtualenv astro && cpvirtualenv astro2 astro && astro
 }
 #END whoami aliases
 #BEGIN fix muted audio macOSX
@@ -223,6 +259,7 @@ alias essh='emacs -f ssh'
 #BEGIN mount file systems ssh
 alias mntbaker="umount -f ~/baker; sshfs henryhu@baker:/usr/local/share/baker/staging ~/baker"
 alias mntspratly="umount -f ~/spratly; sshfs henryhu@spratly.csail.mit.edu ~/spratly"
+alias mntdevon="umount -f ~/devon; sshfs henryhu@devon.csail.mit.edu:/storage/henryhu ~/devon"
 #END mount file systems ssh
 #BEGIN unmount icecube from snowflake
 alias umnticecube="diskutil unmount /Volumes/Extreme\ SSD/; diskutil unmount /Volumes/icecube/;"
@@ -269,11 +306,8 @@ export PATH
 export WORKON_HOME=~/.virtualenvs
 export VIRTUALENVWRAPPER_PYTHON=/opt/anaconda3/bin/python3.8;
 source /opt/anaconda3/bin/virtualenvwrapper.sh
-export MACOSX_DEPLOYMENT_TARGET=10.15
+export MACOSX_DEPLOYMENT_TARGET=11.4
 # END Python virtualenvs
-
-# added by travis gem
-[ -f /Users/henryhu/.travis/travis.sh ] && source /Users/henryhu/.travis/travis.sh
 
 # Working directory shortcut
 source ~/.wd-history
@@ -353,4 +387,35 @@ function start-ddclient {
 function print-betty () {
     scp $1 spratly.csail.mit.edu:~/tmp-to-print;
     ssh spratly.csail.mit.edu "lpoptions -d betty && lp tmp-to-print"
+}
+
+function concat-pdfs () {
+    pdftk $@ cat output out.pdf
+    echo "Concatenated PDFs $@ to out.pdf"
+}
+
+function pdf-booklet () {
+    # Print pdf into a booklet form (4 pages per front-back page)
+    echo "Follow this procedure:"
+    echo "1. Print from Adobe Acrobat in booklet mode to the network printer: localhost"
+    echo "2. sudo -s"
+    echo "3. cd /private/var/spool/cups; ls -lrth"
+    echo "4. Examine the newest file here named d#####-###"
+    echo "5. You must do pstopdf d#####-###; chown henryhu *.pdf; mv *.pdf ~henryhu/Downloads;"
+}
+
+function slay-spire () {
+    # https://github.com/gitwatch/gitwatch
+    echo "running \"dt\""
+    dt
+    echo
+    echo "running \"pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves'\""
+    pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves'
+    echo
+    echo "running \"gitwatch .\""
+    gitwatch '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves'
+}
+
+function forward-devon () {
+    ssh -L 127.0.0.1:8888:127.0.0.1:8888 devon.csail.mit.edu;
 }
