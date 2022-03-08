@@ -108,6 +108,12 @@ autolint () {
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
 }
+alias ai='python ~/astroparse/scripts/astroparser_interactive.py -vsop'
+alias ts='python ~/astroparse/scripts/try_spacy.py'
+function astro () {
+    cd ~/astroparse
+    workon astro
+}
 #END whoami aliases
 ########### GIT TOOLS
 #BEGIN git auto-complete

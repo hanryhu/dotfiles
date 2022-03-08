@@ -116,6 +116,7 @@
 (setq ediff-split-window-function (quote split-window-horizontally))
 
 (tool-bar-mode -1)
+(menu-bar-mode -1)
 (toggle-frame-maximized)
 
 ;; Enable line numbers globally
