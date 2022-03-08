@@ -9,6 +9,13 @@
 ;;;
 ;;; - Second alternative: https://emacsformacosx.com/ but also doesn't
 ;;; come with `emacs` terminal command.
+;;;
+;;; Current setup: emacs-mac copied the application from Cellar to
+;;; /Applications, then copy its Contents/Emacs executable to
+;;; /usr/local/bin/emacs for the terminal version because emacs-mac's
+;;; default shell script for it is asynchronous and leads to
+;;; unexpected git commit message behavior.  emacs-head leads to
+;;; crashes on loading.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Package setup                                                          ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -71,6 +78,11 @@
 ;;; Turn off Folding Mode.  Must do this _before_ loading InfoLab-wide
 ;;; common-emacs file.
 (setq folding-auto-start nil)
+
+;;; Turn off lockfiles.  Leaves me vulnerable to getting work
+;;; overwritten by separate instances of Emacs, but prevents bogus
+;;; file lock messages when using a computer with a dynamic IP.
+;;; (setq create-lockfiles nil)
 
 ;;;(add-to-list 'default-frame-alist '(fullscreen . maximized)) ;start emacs maximized
 
@@ -266,12 +278,21 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
 
 (setq ivy-count-format "%d/%d ")
-;;; ~/ is muscle memory.  See
+;;; ~/ is muscle memory, plus emacs autosaves have ~.  See
 ;;; https://github.com/abo-abo/swiper/commit/83121769b411a49d1e58aab89e8c800810b223c0
+;;; Tip: to go to local file during a TRAMP session, type ~/~/ or /
+;;; C-j.
 (setq ivy-magic-tilde '())
 ;;; Match queries in any order "example for" matches "for example"
 (setq ivy-re-builders-alist
       '((t . ivy--regex-ignore-order)))
+
+;; C-M-j (ivy-immediate-done) Exits with the current input instead of
+;;     the current candidate (like other commands).  This is useful
+;;     e.g. when you call find-file to create a new file, but the
+;;     desired name matches an existing file. In that case, using C-j
+;;     would select that existing file, which isn't what you want -
+;;     use this command instead. quote
 
 (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
 
@@ -372,10 +393,19 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; (global-set-key "\C-\M-z" 'add-index-to-proper-noun)
 (fset 'jump-to-texp
    [?\C-s ?\[ return])
-(global-set-key "\C-\M-x" 'jump-to-texp)
+;; (global-set-key "\C-\M-x" 'jump-to-texp)
 (fset 'astroparse-test-result-to-list-item
    (kmacro-lambda-form [?\C-s ?\[ return ?\C-b ?\C-  ?\C-a backspace ?\' ?\C-e ?\' ?, ?\C-n ?\C-a] 0 "%d"))
 (global-set-key "\C-\M-z" 'astroparse-test-result-to-list-item)
+(fset 'astroparse-mark-expected-fail-for-stanza
+      (kmacro-lambda-form [?\C-s ?d ?e ?f ?  ?t ?e ?s ?t ?_ return ?\C-a ?\C-  ?\C-n ?\M-w ?\C-p ?\C-p ?\C-e return backspace backspace ?@ ?u ?n ?i ?t ?t ?e ?s ?t ?. ?e ?x ?p ?e ?c ?t ?e ?d ?F ?a ?i ?l ?u ?r ?e ?\C-n ?\C-e return return return ?\C-y backspace ?\C-a tab tab ?\C-p ?\C-p tab ?s ?u ?p ?e ?r ?\( ?\) ?. ?\C-y ?\C-  ?\C-r ?\( ?s ?e ?l ?f ?\) return ?\C-f ?\) ?\C-r ?d ?e ?f ?  return ?\C-  ?\C-s ?t ?e ?s ?t ?_ return ?\C-\M-b backspace ?\M-\\ ?\C-e ?\C-n ?\C-n ?\C-b ?\C-\M-b ?_ ?s ?t ?n backspace ?a ?n ?z ?a] 0 "%d"))
+(global-set-key "\C-\M-c" 'astroparse-mark-expected-fail-for-stanza)
+;; (fset 'insert-is-proper-at-end-of-next-test
+;;    (kmacro-lambda-form [?\C-s ?r ?e ?s ?u ?l ?t ?  ?= ?  return ?\C-p ?\C-p ?\C-e return ?\' ?\[ ?  ?i ?s ?_ ?p ?r ?o ?p ?e ?r ?  ?y ?e ?s ?\] ?\' ?, ?\C-a ?\C-s ?\[ return] 0 "%d"))
+;; (global-set-key "\C-\M-c" 'insert-is-proper-at-end-of-next-test)
+;; (fset 'indent-preceding-list-and-add-comma
+;;    (kmacro-lambda-form [?\C-b ?\C-\M-b ?\C-f ?\C-j ?\C-p ?\C-e ?\C-b ?\C-\M-f ?\C-b ?, ?\C-j ?\C-f ?\C-\M-b ?\C-\M-q ?\C-\M-f] 0 "%d"))
+;; (global-set-key "\C-\M-c" 'indent-preceding-list-and-add-comma)
 
 (global-set-key (kbd "M-$") #'shell)
 (global-set-key (kbd "M-*") #'shell)
@@ -414,9 +444,20 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (global-set-key (kbd "C-c c") 'magit-commit-create)
 ;; Beginnings of conversion to the magit cult
 (global-set-key (kbd "C-c x") 'magit-commit-extend) ; --amend --no-edit
-(global-set-key (kbd "C-c r") 'magit-branch)
+(global-set-key (kbd "C-c z") 'magit-commit-amend)
+(global-set-key (kbd "C-c r") 'magit-rebase)
+(global-set-key (kbd "C-c d") 'magit-diff)
 (global-set-key (kbd "C-c t") 'magit-status)
 (global-set-key (kbd "C-c m") 'magit-status)
+
+(require 'ansi-color)
+;; function for colorizing
+(defun colorize-buffer ()
+  (interactive)
+  (toggle-read-only)
+  (ansi-color-apply-on-region (point-min) (point-max))
+  (toggle-read-only))
+(global-set-key (kbd "C-c o") 'colorize-buffer)
 
 ;; https://www.emacswiki.org/emacs/BuildTags#toc4
 (defun create-tags (dir-name glob)
@@ -524,6 +565,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; cycle snake_case, camelCase, etc for ruby
 (require 'string-inflection)
 (global-set-key (kbd "C-c C-u") 'string-inflection-all-cycle)
+(global-set-key (kbd "C-c u") 'string-inflection-all-cycle)
 
 ;; ;; Kill and replace the sexp at point, ending with the last yank at
 ;; ;; the top of the kill ring.
@@ -544,17 +586,19 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("e4486d0ad184fb7511e391b6ecb8c4d7e5ab29e2d33bc65403e2315dbacaa4aa" default))
  '(flycheck-javascript-flow-args nil)
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   '(visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
+   '(company-emojify ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:height 150 :family "Menlo")))))
+ '(default ((t (:height 200 :family "Menlo")))))
 
 
 ;; end Autogen
@@ -589,6 +633,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   ;; Wish I knew how to start buffer with `astro` bash cmd.  That
   ;; would go here.
   (shell (concat "*" cmd "*")))
+
+(add-to-list 'auto-mode-alist '("\\.apm\\'" . ruby-mode))
 
 ;; End Python settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -645,9 +691,21 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (defun spr ()
   (interactive)
   (infolab-ssh "spratly"))
+(defun som ()
+  (interactive)
+  (infolab-ssh "somerset"))
 (defun wal ()
   (interactive)
   (infolab-ssh "wallis"))
+(defun fij ()
+  (interactive)
+  (infolab-ssh "fiji"))
+(defun mani ()
+  (interactive)
+  (infolab-ssh "manitoulin"))
+(defun dev ()
+  (interactive)
+  (infolab-ssh "devon"))
 (defun sno ()
   (interactive)
   (ssh "henryhu" "snowflake.myddns.me" "~"))
@@ -672,7 +730,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   (ssh "henryhu" "athena.dialup.mit.edu" "~"))
 
 (defun infolab-ssh (host)
-  (interactive "sHostname: ")
+  (interactive "sHostname (without .csail.mit.edu): ")
   (let ((infolab-hostname (concat host ".csail.mit.edu")))
     (ssh "henryhu" infolab-hostname "~")))
 
