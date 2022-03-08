@@ -7,13 +7,18 @@
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
+(defun package-install-unless-installed (package)
+    (unless (package-installed-p package)
+      (package-refresh-contents)
+      (package-install package)))
+(package-install-unless-installed 'use-package)
+;; (unless (package-installed-p 'use-package)
+;;   (package-refresh-contents)
+;;   (package-install 'use-package))
 
 (setq use-package-always-ensure t)
 
-(package-refresh-contents)
+;; (package-refresh-contents)
 (setq henryhu-packages
       (list 'browse-kill-ring
 	    'company-flow    
@@ -31,7 +36,11 @@
 	    'use-package     
 	    'web-mode        
 	    'yaml-mode))
-(mapcar #'package-install henryhu-packages)
+(mapcar #'package-install-unless-installed henryhu-packages)
+;; For authentication signature check failed, see
+;; https://emacs.stackexchange.com/questions/233/how-to-proceed-on-package-el-signature-check-failure.
+;; (setq package-check-signature nil) and then use package-install
+;; gnu-elpa-keyring-update
 
 ;; Zenburn theme
 (add-to-list 'custom-theme-load-path "~/zenburn-emacs")
@@ -39,6 +48,10 @@
 
 ;; Possibly fixes some package-install: Bad Request errors
 ;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+
+;; Set bash for M-x shell, M-x shell-command
+(setq explicit-shell-file-name "/bin/bash")
+(setenv "SHELL" "/bin/bash")
 
 ;; End package setup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -88,7 +101,7 @@
 (global-set-key (kbd "<f11>") 'toggle-fullscreen)
 ;;; (toggle-fullscreen)
 ;;; (toggle-fullscreen)
-(toggle-fullscreen)
+;;; (toggle-fullscreen)
 
 ;;; Alias for zooming (C-x C-+)
 (defun zoom-in ()
@@ -310,7 +323,7 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (rg python-docstring prettier-js magit inf-ruby fzf exec-path-from-shell flycheck-flow git-commit gh-md flymd markdown-preview-mode markdown-mode+ markdown-mode yaml-mode web-mode use-package string-inflection scheme-complete package+ move-text elisp-docstring-mode dumb-jump company-flow cl-generic browse-kill-ring))))
+    (pdf-tools rg python-docstring prettier-js magit inf-ruby fzf exec-path-from-shell flycheck-flow git-commit gh-md flymd markdown-preview-mode markdown-mode+ markdown-mode yaml-mode web-mode use-package string-inflection scheme-complete package+ move-text elisp-docstring-mode dumb-jump company-flow cl-generic browse-kill-ring))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -337,6 +350,13 @@
 
 ;; Treat word_word or wordWord as word boundaries
 (subword-mode +1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+
+;; Treat x = 1 as 3 sexps
+;; (add-hook 'python-mode-hook ;; Also treats def blah(): as 3 sexps
+;;           (lambda () (setq forward-sexp-function nil)))
+
+(fset 'convert-texpdb-test-to-astroparse-test
+   [?\C-s ?s ?e ?l ?f ?. ?a ?s ?s ?e ?r ?t ?c ?o ?u ?n ?t ?e ?q ?u ?a ?l ?\( ?c ?o ?n ?v ?e ?r ?t ?_ ?t ?o ?_ ?t ?e ?x ?t ?\( return ?\C-  ?\C-r ?s ?e ?l ?f ?. return ?s ?e ?n ?t ?e ?n ?c ?e ?  ?= ?  ?\C-\M-f ?\C-  ?\C-e backspace return ?t ?e ?x ?p ?s ?  ?= ?\C-n ?\M-^ ?\C-\M-f ?\C-  ?\C-e backspace return ?r ?e ?s ?u ?l ?t ?  ?= ?  ?s ?e ?l ?f ?. ?m ?o ?d ?e ?l ?. ?m ?a ?k ?e ?_ ?t ?e ?x ?p ?s ?\( ?s ?e ?n ?t ?e ?n ?c ?e ?\) return ?s ?e ?l ?f ?. ?a ?s ?s ?e ?r ?t ?C ?o ?n ?t ?a ?i ?n ?s ?T ?e ?x ?p ?s ?\( ?r ?e ?s ?u ?l ?t ?, ?  ?t ?e ?x ?p ?s ?\) ?\C-r ?t ?e ?x ?p ?s ?  ?= ?  ?\[ return ?\M-f ?\M-f ?\M-b ?\C-b ?\C-b])
 
 ;; End Python settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
