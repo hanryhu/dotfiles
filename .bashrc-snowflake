@@ -156,7 +156,7 @@ alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts -
 alias whoami-run='python ~/whoami/scripts/run.py'
 alias astro-test='astro && astro-lint && python -m nose2 -v'
 alias ast=astro-test
-alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests ~/astroparse/scripts --ignore=E501,W504'
+alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests --ignore=E501,W504'
 elint () {
     # whoami lint
     lint_files=$(whoami-lint -q | paste -sd " " -)
@@ -189,12 +189,12 @@ autolint () {
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
 }
-alias ai='astro; python ~/astroparse/scripts/astroparser_interactive.py -vsop'
-alias aib='astrob; python ~/astroparse2/scripts/astroparser_interactive.py -vsop'
+alias ai='astro; astroparse-interactive -vsop'
+alias aib='astrob; astroparse-interactive -vsop'
 alias ts='astro; astroparse-try-parsers'
 alias tsb='astrob; astroparse-try-parsers'
-alias rlwrap-ai='astro; rlwrap python ~/astroparse/scripts/astroparser_interactive.py -vsop'
-alias rlwrap-ts='astro; rlwrap python ~/astroparse/scripts/try_spacy.py'
+alias rlwrap-ai='astro; rlwrap astroparse-interactive -vsop'
+alias rlwrap-ts='astro; rlwrap astroparse-try-parsers'
 function astro () {
     cd ~/astroparse
     workon astro
@@ -231,6 +231,10 @@ analyze-history () {
 #END analyze-history
 #BEGIN git aliases
 alias gs='git status'
+function git-log-title-body-only () {
+    git log --format='%Cgreen%s%n%Creset%b'
+}
+alias gltbo=git-log-title-body-only
 #END git aliases
 
 #### ACCESSING REMOTE FILE SYSTEMS
@@ -389,6 +393,11 @@ function print-betty () {
     ssh spratly.csail.mit.edu "lpoptions -d betty && lp tmp-to-print"
 }
 
+function print-betty-on-host () {
+    scp $1 $2.csail.mit.edu:~/tmp-to-print;
+    ssh $2.csail.mit.edu "lpoptions -d betty && lp tmp-to-print"
+}
+
 function concat-pdfs () {
     pdftk $@ cat output out.pdf
     echo "Concatenated PDFs $@ to out.pdf"
@@ -416,6 +425,27 @@ function slay-spire () {
     gitwatch '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves'
 }
 
+function find-display-game () {
+    pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/'
+    pushd "/Users/henryhu/Library/Application Support/Sid Meier's Civilization VI"
+    echo "emacs -nw AppOptions.txt"
+    echo "Civilization, if want slay spire do popd"
+}
+
+
 function forward-devon () {
     ssh -L 127.0.0.1:8888:127.0.0.1:8888 devon.csail.mit.edu;
+}
+
+
+function fix-emacs () {
+    # https://emacs.stackexchange.com/questions/21643/what-do-i-do-when-emacs-is-frozen
+    pkill -SIGUSR2 emacs
+    # Immediately do M-x toggle-debug-on-quit
+}
+
+function wordle () {
+    pushd ~/Downloads
+    workon astro
+    python -i wordle.py
 }
