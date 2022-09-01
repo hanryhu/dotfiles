@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 ######## TERMINAL CONFIG
 #BEGIN better autocomplete for sudo
 complete -cf sudo
@@ -9,7 +11,10 @@ export PS1="\h:\w\$ "
 export SHELL=/bin/bash
 export BASH_SILENCE_DEPRECATION_WARNING=1
 # End suppress bash warning
-
+# BEGIN suppress dumb term warning
+if [[ -n $INSIDE_EMACS ]]; then
+    export TERM=xterm
+fi
 
 ######## USEFUL ALIASES
 # BEGIN update bashrc
@@ -26,13 +31,13 @@ alias dcf-inter="./run.sh --target=inter"
 alias dcf-cfg="./run.sh --target=cfg"
 function dcf-cfg-and-print () 
 { 
-    ./run.sh --target=cfg $1;
-    cat $1
+    ./run.sh --target=cfg "$1";
+    cat "$1"
 }
 alias dcf-gen="./run.sh --target=assembly -o temp.s"
 function dcf-exec ()
 {
-    ./run.sh --target=assembly -o temp.s $1 &&
+    ./run.sh --target=assembly -o temp.s "$1" &&
 	echo 'assembly at temp.s' &&
 	gcc -no-pie temp.s -o temp &&
 	echo 'exec at temp' &&
@@ -52,7 +57,8 @@ alias which=type
 alias mv-mv=/bin/mv
 function maybe-git-mv ()
 {
-    local repo=$(git rev-parse --show-toplevel 2> /dev/null)
+    local repo
+    repo=$(git rev-parse --show-toplevel 2> /dev/null)
     if [[ -e "${repo}" ]]; then
 	echo "Using git mv -- if you want normal mv use mv-mv";
 	git mv "$@";
@@ -66,7 +72,8 @@ alias mv=maybe-git-mv
 alias rm-rm=/bin/rm
 function maybe-git-rm ()
 {
-    local repo=$(git rev-parse --show-toplevel 2> /dev/null)
+    local repo
+    repo=$(git rev-parse --show-toplevel 2> /dev/null)
     if [[ -e "${repo}" ]]; then
 	echo "Using git rm -- if you want normal rm use rm-rm";
 	git rm "$@";
@@ -160,15 +167,15 @@ alias astro-lint='pycodestyle ~/astroparse/astroparse ~/astroparse/tests --ignor
 elint () {
     # whoami lint
     lint_files=$(whoami-lint -q | paste -sd " " -)
-    if [ ! -z "$lint_files" ]; then
-	emacs $@ $lint_files
+    if [ -n "$lint_files" ]; then
+	emacs "$@" "$lint_files"
     else
 	echo "Nothing to lint in whoami! Yay :)"
     fi
     # astroparse lint
     lint_files=$(astro-lint -q | paste -sd " " -)
-    if [ ! -z "$lint_files" ]; then
-	emacs $@ $lint_files
+    if [ -n "$lint_files" ]; then
+	emacs "$@" "$lint_files"
     else
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
@@ -176,15 +183,15 @@ elint () {
 autolint () {
     # whoami lint
     lint_files=$(whoami-lint -q | paste -sd " " -)
-    if [ ! -z "$lint_files" ]; then
-	autopep8 --in-place --ignore=E501,W504 $@ $lint_files
+    if [ -n "$lint_files" ]; then
+	autopep8 --in-place --ignore=E501,W504 "$@" "$lint_files"
     else
 	echo "Nothing to lint in whoami! Yay :)"
     fi
     # astroparse lint
     lint_files=$(astro-lint -q | paste -sd " " -)
-    if [ ! -z "$lint_files" ]; then
-	autopep8 --in-place --ignore=E501,W504 $@ $lint_files
+    if [ -n "$lint_files" ]; then
+	autopep8 --in-place --ignore=E501,W504 "$@" "$lint_files"
     else
 	echo "Nothing to lint in astroparse! Yay :)"
     fi
@@ -196,12 +203,12 @@ alias tsb='astrob; astroparse-try-parsers'
 alias rlwrap-ai='astro; rlwrap astroparse-interactive -vsop'
 alias rlwrap-ts='astro; rlwrap astroparse-try-parsers'
 function astro () {
-    cd ~/astroparse
+    cd ~/astroparse || return
     workon astro
 }
 function astrob () {
     # astro-backup
-    cd ~/astroparse2
+    cd ~/astroparse2 || return
     workon astrob
 }
 function astro3 () {
@@ -217,11 +224,11 @@ alias fix-audio="sudo killall coreaudiod"
 
 ########### GIT TOOLS
 #BEGIN git auto-complete (https://apple.stackexchange.com/questions/55875/git-auto-complete-for-branches-at-the-command-line)
-test -f ~/.git-completion.bash && . $_
+test -f ~/.git-completion.bash && . "$_"
 #END git auto-complete
 #BEGIN use emacs to open all affected files in a git diff
 ediff () {
-    emacs `git diff --name-only $@ | paste -sd " " -`
+    emacs "$(git diff --name-only $@ | paste -sd " " -)"
 }
 #END use emacs to open all affected files in a git diff
 #BEGIN analyze-history
@@ -241,9 +248,9 @@ alias gltbo=git-log-title-body-only
 #BEGIN snowflake scp
 function sf-scp () {
     if [[ -z $2 ]] ; then
-	scp henryhu@snowflake.myddns.me:$1 $1;
+	scp henryhu@snowflake.myddns.me:"$1" "$1";
     else
-	scp henryhu@snowflake.myddns.me:$1 $2;
+	scp henryhu@snowflake.myddns.me:"$1" "$2";
     fi
 }
 #END snowflake scp
@@ -276,7 +283,7 @@ alias check-ssh="ps -A | grep sshd"
 alias check-ip="dig +short myip.opendns.com @resolver1.opendns.com"
 #END Check my public IP
 #BEGIN instance var slushy -- computer domain
-slushy="slushy.myddns.me"
+export slushy="slushy.myddns.me"
 #END instance var slushy -- computer domain
 #BEGIN slushy ssh
 alias slu="ssh -Y henryhu@slushy.myddns.me"
@@ -309,7 +316,7 @@ export PATH
 # Python virtualenvs
 export WORKON_HOME=~/.virtualenvs
 export VIRTUALENVWRAPPER_PYTHON=/opt/anaconda3/bin/python3.8;
-source /opt/anaconda3/bin/virtualenvwrapper.sh
+[ -f /opt/anaconda3/bin/virtualenvwrapper.sh ] && source /opt/anaconda3/bin/virtualenvwrapper.sh
 export MACOSX_DEPLOYMENT_TARGET=11.4
 # END Python virtualenvs
 
@@ -340,11 +347,11 @@ alias sw-sw=swap-swap
 
 function zoomcrop () {
     echo "Usage: zoomcrop IN OUT"
-    ffmpeg -i $1 -filter:v "crop=2075:1181:0:116" $2 # crop=w:h:x:y
+    ffmpeg -i "$1" -filter:v "crop=2075:1181:0:116" "$2" # crop=w:h:x:y
 }
 
 function rm-audio {
-    ffmpeg -i $1 -c copy -an "$1-nosound.${1#*.}"
+    ffmpeg -i "$1" -c copy -an "$1-nosound.${1#*.}"
 }
 
 function epic-games-non-crash {
@@ -362,16 +369,16 @@ function vnc-tunnel {
 }
 
 function fix-webcam {
-    pushd ~/node-uvc-control
+    pushd ~/node-uvc-control || return
     node ./examples/server.js > /dev/null 2>&1 &
     sleep 0.5 # wait for node to start the server
     # Don't use https, or else SSL protocol error
     chrome "http://localhost:3000/" > /dev/null 2>&1 &
-    read -p "Press enter to kill all node jobs in this terminal session"
+    read -r -p "Press enter to kill all node jobs in this terminal session"
     echo "Good bye!"
     echo "------------"
-    kill $(jobs -p node)
-    popd
+    kill "$(jobs -p node)"
+    popd || return
 }
 
 function for-loop-example {
@@ -379,7 +386,7 @@ function for-loop-example {
     IFS=$(echo -en "\n\b")
     for i in $(find .)
     do
-        ffmpeg -i $i $i.mp3
+        ffmpeg -i "$i" "$i.mp3"
     done
 }
 
@@ -389,18 +396,18 @@ function start-ddclient {
 }
 
 function print-betty () {
-    scp $1 spratly.csail.mit.edu:~/tmp-to-print;
+    scp "$1" spratly.csail.mit.edu:~/tmp-to-print;
     ssh spratly.csail.mit.edu "lpoptions -d betty && lp tmp-to-print"
 }
 
 function print-betty-on-host () {
-    scp $1 $2.csail.mit.edu:~/tmp-to-print;
-    ssh $2.csail.mit.edu "lpoptions -d betty && lp tmp-to-print"
+    scp "$1" "$2".csail.mit.edu:~/tmp-to-print;
+    ssh "$2".csail.mit.edu "lpoptions -d betty && lp tmp-to-print"
 }
 
 function concat-pdfs () {
-    pdftk $@ cat output out.pdf
-    echo "Concatenated PDFs $@ to out.pdf"
+    pdftk "$@" cat output out.pdf
+    echo "Concatenated PDFs "$@" to out.pdf"
 }
 
 function pdf-booklet () {
@@ -419,15 +426,15 @@ function slay-spire () {
     dt
     echo
     echo "running \"pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves'\""
-    pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves'
+    pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves' || return
     echo
     echo "running \"gitwatch .\""
     gitwatch '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/saves'
 }
 
 function find-display-game () {
-    pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/'
-    pushd "/Users/henryhu/Library/Application Support/Sid Meier's Civilization VI"
+    pushd '/Users/henryhu/Library/Application Support/Steam/steamapps/common/SlayTheSpire/SlayTheSpire.app/Contents/Resources/' || return
+    pushd "/Users/henryhu/Library/Application Support/Sid Meier's Civilization VI" || return
     echo "emacs -nw AppOptions.txt"
     echo "Civilization, if want slay spire do popd"
 }
@@ -445,7 +452,12 @@ function fix-emacs () {
 }
 
 function wordle () {
-    pushd ~/Downloads
+    pushd ~/Downloads || return
     workon astro
     python -i wordle.py
 }
+
+alias stack-branch="git commit --allow-empty -m"
+alias stack-restack="git fetch origin master; git rebase -i origin/master"
+alias stack-push-f="yes | ~/stripe/zoolander/create-and-push-pr-stack.sh"
+
