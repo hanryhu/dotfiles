@@ -27,3 +27,5 @@
 	autoupdate = true
 [init]
 	templatedir = /Users/henryhu/.git-templates
+[rebase]
+        allowEmpty = true
