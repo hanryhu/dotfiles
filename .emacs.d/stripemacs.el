@@ -5,7 +5,6 @@
 (require 'package)
 (setq package-enable-at-startup nil)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-(package-initialize)
 
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -113,8 +112,6 @@
   (flycheck-add-mode 'javascript-flow 'web-mode)
   (flycheck-add-next-checker 'javascript-flow '(t . javascript-eslint))
   (global-flycheck-mode))
-(use-package magit
-  :bind (("C-c m s" . magit-status)))
 
 ;; Functions
 (defun insert-jira (project jiranum)
