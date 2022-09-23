@@ -23,9 +23,11 @@
 (setq package-enable-at-startup nil)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 
+(setq default-directory (getenv "HOME"))
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
+(package-quickstart-refresh)
 
 (setq use-package-always-ensure t)
 
@@ -129,7 +131,19 @@
 ;; (if (window-system)
 ;;   (set-frame-height (selected-frame) 50))
 
-
+;; Assuming 3440 x 1440 screen (my LG monitor), create a new frame on
+;; the right-hand monitor (switching to it), and maximize it.
+(defun make-frame-vertical-on-right ()
+  "Doc-string."
+  (interactive)
+  (make-frame '(;; (name . "*frame")
+                (top . 0)
+                (left . 3440)
+                ;; (width . (text-pixels . 1080))
+                ;; (height . (text-pixels . 1920))
+                ))
+  (toggle-frame-maximized))
+(define-key my/keys-keymap (kbd "C-x 5 v") 'make-frame-vertical-on-right)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Horizontal scrolling setup                                             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -375,6 +389,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
 ;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
 ;; (add-hook 'shell-mode-hook ()
+;; https://emacs.stackexchange.com/questions/21751/how-to-prevent-backspace-from-deleting-my-shell-prompt
+(setq comint-prompt-read-only t)
 
 ;; ;; Try to get colors to display in M-x shell part 2 (thanks to Mike
 ;; ;; Hamrick)
@@ -855,6 +871,49 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
 
 ;; End tramp configuration
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Pinterest configuration                                                ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  (credit to Matt Jones)
+(require 'tramp)
+(add-to-list 'tramp-methods
+             `("ssh"
+               (tramp-login-program        "gironde")
+               (tramp-login-args           (("ssh") ("%h") ("-l" "%u") ("-p" "%p") ("%c")
+				            ("-e" "none")))
+               (tramp-async-args           ())
+               (tramp-direct-async         t)
+               (tramp-remote-shell         ,tramp-default-remote-shell)
+               (tramp-remote-shell-login   ("-l"))
+               (tramp-remote-shell-args    ("-c"))))
+
+(setq
+ tramp-auto-save-directory "/tmp"
+ tramp-use-ssh-controlmaster-options nil
+ tramp-inline-compress-start-size (* 64 1024)
+ tramp-default-method "ssh"
+ ;; vc-ignore-dir-regexp (format "\\(%s\\)\\|\\(%s\\)" vc-ignore-dir-regexp tramp-file-name-regexp)
+ )
+;; In .ssh/config:
+;; Host *
+;;   ForwardAgent no
+;;   Compression no
+;;   ServerAliveInterval 240
+;;   ServerAliveCountMax 1
+;;   HashKnownHosts no
+;;   UserKnownHostsFile ~/.ssh/known_hosts
+;;   ControlMaster auto
+;;   ControlPath ~/.ssh/master-%r@%n:%p
+;;   ControlPersist 10m
+;; end  (credit to Matt Jones)
+(defun pin ()
+  (interactive)
+  (ssh "hhu" "devrestricted-hhu.ec2.pin220.com" "~"))
+(setq dumb-jump-default-project "~/code/pinboard")
+(setq dumb-jump-force-searcher 'rg)
+
+;; End Pinterest configuration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MacOS specific configuration                                           ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
