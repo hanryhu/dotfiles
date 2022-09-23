@@ -45,14 +45,16 @@
 	    'flycheck-flow   
 	    'fzf
             'ivy
-	    'inf-ruby        
-	    'magit           
+           'inf-ruby
+	    'magit
+            'markdown-mode              ; for markdown-follow-thing-at-point
 	    'move-text       
 	    'prettier-js
             'python-docstring
 	    'rg
 	    'string-inflection
 	    'scheme-complete
+            'sudo-edit                  ; for M-x sudo
 	    'use-package     
 	    'web-mode        
 	    'yaml-mode))
@@ -718,7 +720,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   '(dirvish which-key auctex protobuf-mode thrift scala-mode package company-emojify ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
+   '(markdown-preview-mode sudo-edit dirvish which-key auctex protobuf-mode thrift scala-mode package company-emojify ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
