@@ -117,7 +117,8 @@
   (defun track-mouse (e))
   (setq mouse-sel-mode t)
   )
-(define-key my/keys-keymap (kbd "H-o") 'markdown-follow-thing-at-point)
+;; ...follow-thing... doesn't work in elisp comments
+(define-key my/keys-keymap (kbd "H-o") 'markdown-follow-link-at-point)
 (define-key my/keys-keymap (kbd "<f11>") 'toggle-fullscreen)
 
 ;; Solid, unblinking cursor
@@ -133,10 +134,10 @@
 ;; (if (window-system)
 ;;   (set-frame-height (selected-frame) 50))
 
-;; Assuming 3440 x 1440 screen (my LG monitor), create a new frame on
-;; the right-hand monitor (switching to it), and maximize it.
 (defun make-frame-vertical-on-right ()
-  "Doc-string."
+  "Assuming 3440 x 1440 screen (my LG monitor), create a new
+frame on the right-hand monitor (switching to it), and maximize
+it."
   (interactive)
   (make-frame '(;; (name . "*frame")
                 (top . 0)
@@ -145,7 +146,18 @@
                 ;; (height . (text-pixels . 1920))
                 ))
   (toggle-frame-maximized))
-(define-key my/keys-keymap (kbd "C-x 5 v") 'make-frame-vertical-on-right)
+(defun make-frame-vertical-on-left ()
+  "make new frame on left and maximize."
+  (interactive)
+  (make-frame '(;; (name . "*frame")
+                (top . 0)
+                (left . 0)
+                ;; (width . (text-pixels . 1080))
+                ;; (height . (text-pixels . 1920))
+                ))
+  (toggle-frame-maximized))
+(define-key my/keys-keymap (kbd "C-x 5 r") 'make-frame-vertical-on-right)
+(define-key my/keys-keymap (kbd "C-x 5 l") 'make-frame-vertical-on-left)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Horizontal scrolling setup                                             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -370,6 +382,10 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;;     would select that existing file, which isn't what you want -
 ;;     use this command instead. tags: quote, literal
 (define-key my/keys-keymap (kbd "C-<return>") 'ivy-immediate-done)
+
+;; Using wd in shell (see .wd-history) messes up Emacs's current
+;; working directory (used for find-file).  Resync (aka M-<return>).
+(define-key my/keys-keymap (kbd "C-x w d") 'shell-resync-dirs)
 
 (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
 
@@ -891,27 +907,24 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
                (tramp-remote-shell-args    ("-c"))))
 
 (setq
- tramp-auto-save-directory "/tmp"
- tramp-use-ssh-controlmaster-options nil
- tramp-inline-compress-start-size (* 64 1024)
  tramp-default-method "ssh"
  ;; vc-ignore-dir-regexp (format "\\(%s\\)\\|\\(%s\\)" vc-ignore-dir-regexp tramp-file-name-regexp)
  )
 ;; In .ssh/config:
-;; Host *
-;;   ForwardAgent no
-;;   Compression no
-;;   ServerAliveInterval 240
-;;   ServerAliveCountMax 1
-;;   HashKnownHosts no
-;;   UserKnownHostsFile ~/.ssh/known_hosts
-;;   ControlMaster auto
-;;   ControlPath ~/.ssh/master-%r@%n:%p
-;;   ControlPersist 10m
-;; end  (credit to Matt Jones)
+;; CheckHostIP no
+;; ServerAliveInterval 240
+;; ServerAliveCountMax 10
+;; UserKnownHostsFile ~/.ssh/known_hosts
+;; # Seems to cause permission errors which cause gironde to sleep 10s
+;; # ControlMaster auto
+;; # ControlPath ~/.ssh/master-%r@%n:%p
+;; # ControlPersist 10m
+;; UseKeychain yes
+;; AddKeysToAgent yes
+;; end  (partial credit to Matt Jones)
 (defun pin ()
   (interactive)
-  (ssh "hhu" "devrestricted-hhu.ec2.pin220.com" "~"))
+  (ssh "hhu" "devrestricted-hhu-1.ec2.pin220.com" "~"))
 (setq dumb-jump-default-project "~/code/pinboard")
 (setq dumb-jump-force-searcher 'rg)
 
