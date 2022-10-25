@@ -1,0 +1,513 @@
+;; -*- mode: Emacs-Lisp;-*-
+;;; Minimal config for, e.g., when Tramp is used as primary and this
+;;; emacs config is only used in -nw for commits, etc.  Avoids
+;;; dependency on .emacs.d (i.e., zenburn, start-common).
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Package setup                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'package)
+(setq package-enable-at-startup nil)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+
+(setq default-directory (getenv "HOME"))
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(package-quickstart-refresh)
+
+(setq use-package-always-ensure t)
+
+(setq henryhu-packages
+      (list 'browse-kill-ring
+            'company
+            'filladapt
+	    'link-hint
+	    'magit
+            'move-text
+	    'python-docstring
+	    'string-inflection
+	    'sudo-edit                  ; for M-x sudo
+	    'use-package
+	    'web-mode
+	    'yaml-mode))
+(mapcar #'package-install henryhu-packages)
+
+;; Possibly fixes some package-install: Bad Request errors
+;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+
+;; Set bash for M-x shell, M-x shell-command
+(setq explicit-shell-file-name "/bin/bash")
+(setenv "SHELL" "/bin/bash")
+
+;; From https://emacs.stackexchange.com/questions/65080/stop-major-modes-from-overwriting-my-keybinding
+(defvar my/keys-keymap (make-keymap)
+  "Keymap for my/keys-mode")
+
+(define-minor-mode my/keys-mode
+  "Minor mode for my personal keybindings."
+  :init-value t
+  :global t
+  :keymap my/keys-keymap)
+
+;; The keymaps in `emulation-mode-map-alists' take precedence over
+;; `minor-mode-map-alist'
+(add-to-list 'emulation-mode-map-alists
+             `((my/keys-mode . ,my/keys-keymap)))
+
+;; End package setup
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Window system settings                                                 ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Turn off Folding Mode.  Must do this _before_ loading InfoLab-wide
+;;; common-emacs file.
+(setq folding-auto-start nil)
+
+;;; Turn off lockfiles.  Leaves me vulnerable to getting work
+;;; overwritten by separate instances of Emacs, but prevents bogus
+;;; file lock messages when using a computer with a dynamic IP.
+(setq create-lockfiles nil)
+
+;; Enable mouse support
+(unless window-system
+  (require 'mouse)
+  (xterm-mouse-mode t)
+  (define-key my/keys-keymap (kbd "[mouse-4]") (lambda ()
+                                                 (interactive)
+                                                 (scroll-down 1)))
+  (define-key my/keys-keymap (kbd "[mouse-5]") (lambda ()
+                                                 (interactive)
+                                                 (scroll-up 1)))
+  (defun track-mouse (e))
+  (setq mouse-sel-mode t)
+  )
+(use-package link-hint
+  :ensure t
+  :bind
+  ("H-o" . link-hint-open-link-at-point)
+  ("H-i" . link-hint-copy-link))
+;; ...follow-thing... doesn't work in elisp comments
+;; ...follow-link... doesn't work in shell
+;; (define-key my/keys-keymap (kbd "H-o") 'markdown-follow-link-at-point)
+(define-key my/keys-keymap (kbd "<f11>") 'toggle-fullscreen)
+
+;; Solid, unblinking cursor
+(blink-cursor-mode 0)
+
+;; Scroll page instead of point.
+(define-key my/keys-keymap (kbd "C-c C-s C-s") 'scroll-lock-mode)
+
+(defun make-frame-vertical-on-right ()
+  "Assuming 3440 x 1440 screen (my LG monitor), create a new
+frame on the right-hand monitor (switching to it), and maximize
+it."
+  (interactive)
+  (make-frame '(;; (name . "*frame")
+                (top . 0)
+                (left . 3440)
+                ;; (width . (text-pixels . 1080))
+                ;; (height . (text-pixels . 1920))
+                ))
+  (toggle-frame-maximized))
+(defun make-frame-vertical-on-left ()
+  "make new frame on left and maximize."
+  (interactive)
+  (make-frame '(;; (name . "*frame")
+                (top . 0)
+                (left . 0)
+                ;; (width . (text-pixels . 1080))
+                ;; (height . (text-pixels . 1920))
+                ))
+  (toggle-frame-maximized))
+(define-key my/keys-keymap (kbd "C-x 5 r") 'make-frame-vertical-on-right)
+(define-key my/keys-keymap (kbd "C-x 5 l") 'make-frame-vertical-on-left)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Horizontal scrolling setup                                             ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar recenter-scroll-last-op nil
+  "Indicates the last recenter scroll operation performed.
+Possible values: `top', `middle', `bottom', integer or float numbers.
+(Left is top, middle is middle, and right is bottom.)
+It can also be nil, which means the first value in `recenter-positions'.")
+
+;; Scrolling horizontally.  Scroll directions are sort of "backwards"
+;; in that scroll-all-the-way-right corresponds to C-a instead of C-e.
+(defun activate-horizontal-mode ()
+  (interactive)
+  ;; IDK how to toggle this since toggle-horizontal-scroll-bar
+  ;; requires arg.  Just leave it on.
+  (horizontal-scroll-bar-mode)
+  ;; Avoid hscroll when there are long lines, e.g., in test output.
+  (setq auto-hscroll-mode nil)
+  (toggle-truncate-lines))
+(defun scroll-all-the-way-right ()
+  (interactive)
+  (scroll-right 1000000000)
+  (beginning-of-line))
+(defun scroll-right-and-move-point ()
+  (interactive)
+  (scroll-right)
+  ;; Don't use window-width since linum-mode doesn't update it.
+  (move-to-column (max 0 (- (current-column) (window-max-chars-per-line)))))
+(defun scroll-left-and-move-point ()
+  (interactive)
+  (scroll-left)
+  ;; Don't use window-width since linum-mode doesn't update it.
+  (move-to-column (+ (current-column) (window-max-chars-per-line))))
+(defun my-horizontal-recenter ()
+  "make the point move like C-l in current window but horizontally"
+  (interactive)
+  ;; Don't use window-width since linum-mode doesn't update it.
+  ;; See 
+  (cond
+   ((equal truncate-lines t)
+    (setq recenter-scroll-last-op
+	  (if (eq this-command last-command)
+	      (car (or (cdr (member recenter-scroll-last-op recenter-positions))
+		       recenter-positions))
+	    (car recenter-positions)))
+    (let ((mid (/ (window-max-chars-per-line) 2))
+          (this-scroll-margin
+	   (min (max 0 scroll-margin)
+		(truncate (/ (window-max-chars-per-line) 4.0))))
+          ;; (line-len (save-excursion (end-of-line) (current-column)))
+          ;; (cur-scroll (window-hscroll)))
+          (cur (current-column)))
+      (cond
+       ((eq recenter-scroll-last-op 'top)
+        (set-window-hscroll (selected-window)
+                            (- cur this-scroll-margin)))
+       ((eq recenter-scroll-last-op 'middle)
+        (set-window-hscroll (selected-window)
+                            (- cur mid)))
+       ((eq recenter-scroll-last-op 'bottom)
+        (set-window-hscroll (selected-window)
+                            (- cur (window-max-chars-per-line) (- this-scroll-margin)))))))))
+(define-key my/keys-keymap (kbd "C-M-o") 'activate-horizontal-mode)
+(put 'scroll-left 'disabled nil)
+(put 'scroll-right 'disabled nil)
+;; Overrides some keybindings that I don't use
+(define-key my/keys-keymap (kbd "M-u") 'scroll-all-the-way-right)
+(define-key my/keys-keymap (kbd "M-l") 'my-horizontal-recenter)
+(define-key my/keys-keymap (kbd "M-i") 'scroll-right-and-move-point)
+(define-key my/keys-keymap (kbd "M-o") 'scroll-left-and-move-point)
+
+;;; Start in fullscreen
+(defun my-fullscreen ()
+  (interactive)
+  (set-frame-parameter nil 'fullscreen 'fullheight))
+
+(defun my-non-fullscreen ()
+  (interactive)
+  (set-frame-parameter nil 'width 82)
+  (set-frame-parameter nil 'fullscreen 'fullheight))
+
+(defun toggle-fullscreen ()
+  (interactive)
+  (if (eq (frame-parameter nil 'fullscreen) 'maximized)  ;tests if already fullscreened
+      (my-non-fullscreen)
+    (my-fullscreen)))
+
+(define-key my/keys-keymap (kbd "<f11>") 'toggle-fullscreen)
+;;; (toggle-fullscreen)
+;;; (toggle-fullscreen)
+(toggle-fullscreen)
+
+;;; Alias for zooming (C-x C-+)
+(defun zoom-in ()
+  (interactive)
+  (text-scale-adjust 2))
+(defun zoom-out ()
+  (interactive)
+  (text-scale-adjust -2))
+;;; Make zooming global
+;;; https://stackoverflow.com/questions/18783227/emacs-zoom-in-out-globally
+;; Broken because new buffers are not zoomed in and zooming them in
+;; causes everyone else to zoom in too
+;; (defadvice text-scale-increase (around all-buffers (arg) activate)
+;;   (dolist (buffer (buffer-list))
+;;     (with-current-buffer buffer
+;;       ad-do-it)))
+
+;;;Typed text replaces the selection
+(delete-selection-mode 1)
+
+;;; Autodetect bullets (- xxx) etc. when filling lines
+(autoload 'turn-on-filladapt-mode "filladapt" "Turn on the glorious Filladapt mode.")
+
+(defun asf-turn-on-filladapt ()
+  (unless (eq major-mode 'org-mode)
+    (turn-on-filladapt-mode)
+    (diminish 'filladapt-mode)))
+
+;; Filladapt is old (but great!), so we can't turn it on just
+;; everywhere. We have python-docstring-mode for python so it's mainly
+;; markdown lists.
+(mapc (lambda (hook)
+        (add-hook hook 'asf-turn-on-filladapt))
+      '(text-mode-hook
+        markdown-mode-hook
+        global-magit-file-mode-hook))
+
+;;;When point is on a paired character the other is highlighted at no delay
+(setq show-paren-delay 0)
+(show-paren-mode 1)
+(put 'upcase-region 'disabled nil)
+
+;;; EDiffs split with windows on left and right instead of top and bottom
+(setq ediff-split-window-function (quote split-window-horizontally))
+
+;;; Keep windows balanced -- allows C-x 3 C-x 3 to make 3 equal
+;;; vertical windows https://stackoverflow.com/a/58136628
+(advice-add 'split-window-right :after #'balance-windows)
+;;; Can't rebalance after delete-window because it throws errors
+;;; whenever deleting windows from completion actions etc.
+;;; (advice-add 'delete-window :after #'balance-windows)
+
+(tool-bar-mode -1)
+(toggle-frame-maximized)
+
+;; Enable line numbers globally
+;; (global-linum-mode t) ; very slow for big files, esp. skip to file start
+;; Enable line numbers in Emacs >26
+;; (https://www.emacswiki.org/emacs/LineNumbers)
+(require 'display-line-numbers)
+
+(defcustom display-line-numbers-exempt-modes
+  '(vterm-mode eshell-mode shell-mode term-mode ansi-term-mode dashboard-mode)
+  "Major modes on which to disable line numbers."
+  :group 'display-line-numbers
+  :type 'list
+  :version "green")
+
+(defun display-line-numbers--turn-on ()
+  "Turn on line numbers except for certain major modes.
+Exempt major modes are defined in `display-line-numbers-exempt-modes'."
+  (unless (or (minibufferp)
+              (member major-mode display-line-numbers-exempt-modes))
+    (display-line-numbers-mode)))
+
+(when (version<= "26.0.50" emacs-version )
+  (global-display-line-numbers-mode))
+
+;; Prevent slowdown from major modes in files with longlines
+;; Especially python-mode
+;; https://emacs.stackexchange.com/questions/598/how-do-i-prevent-extremely-long-lines-making-emacs-slow
+(add-hook
+ 'find-file-hook
+ (defun my-find-file-care-about-long-lines ()
+   (save-excursion
+     (goto-char (point-min))
+     (when (and (not (eq major-mode 'image-mode))
+		(not (eq major-mode 'doc-view-mode))
+                (search-forward-regexp ".\\{4000\\}" 50000 t)
+                (y-or-n-p "Very long lines detected - continue without a major mode? "))
+       (fundamental-mode)))))
+
+;;; Prevent company from lowercasing autocompletions.
+(setq company-dabbrev-downcase nil)
+
+;; Using wd in shell (see .wd-history) messes up Emacs's current
+;; working directory (used for find-file).  Resync (aka M-<return>).
+(define-key my/keys-keymap (kbd "C-x w d") 'shell-resync-dirs)
+
+(define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+
+;; Move line/region with M-up, M-down
+(move-text-default-bindings)
+
+;; End Window system settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Common commands                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Insert string for the current time formatted like '2:34 PM'.
+(defun now ()
+  (interactive)			     ; permit invocation in minibuffer
+  (insert (format-time-string "%D %-I:%M %p")))
+
+;; Insert string for today's date nicely formatted in American style,
+;; e.g. Sunday, September 17, 2000.
+(defun today ()
+  (interactive)			     ; permit invocation in minibuffer
+  (insert (format-time-string "%A, %B %e, %Y")))
+
+(defun rolldice ()
+  (interactive)
+  (shell-command "echo You rolled a $((1 + RANDOM % 6))\\! &"))
+
+
+;; https://www.emacswiki.org/emacs/IncrementNumber
+(defun my-increment-number-decimal (&optional arg)
+  "Increment the number forward from point by 'arg'."
+  (interactive "p*")
+  (save-excursion
+    (save-match-data
+      (let (inc-by field-width answer)
+        (setq inc-by (if arg arg 1))
+        (skip-chars-backward "0123456789")
+        (when (re-search-forward "[0-9]+" nil t)
+          (setq field-width (- (match-end 0) (match-beginning 0)))
+          (setq answer (+ (string-to-number (match-string 0) 10) inc-by))
+          (when (< answer 0)
+            (setq answer (+ (expt 10 field-width) answer)))
+          (replace-match (format (concat "%0" (int-to-string field-width) "d")
+                                 answer)))))))
+(define-key my/keys-keymap (kbd "C-c +") 'my-increment-number-decimal)
+
+;; Enable super-merge mode better prefix binding
+(setq smerge-command-prefix "\C-cs")
+
+(define-key my/keys-keymap (kbd "C-j") #'newline-and-indent)
+
+;; Use browse-kill-ring
+(define-key my/keys-keymap "\C-cy" '(lambda ()
+                                      (interactive)
+                                      (browse-kill-ring)))
+
+;; source: http://steve.yegge.googlepages.com/my-dot-emacs-file
+(defun mv-file-and-buffer (new-name)
+  "Renames both current buffer and file it's visiting to NEW-NAME."
+  (interactive "sNew name: ")
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (if (get-buffer new-name)
+          (message "A buffer named '%s' already exists!" new-name)
+        (progn
+          (rename-file filename new-name 2)
+          (rename-buffer new-name)
+          (set-visited-file-name new-name)
+          (set-buffer-modified-p nil))))))
+
+(defun rm-file-and-buffer (confirm)
+  "Removes both current buffer and file it's visiting."
+  (interactive "sEnter n to abort: ")
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (if (equal "n" confirm)
+          (message "Aborted!")
+        (progn
+          (delete-file filename)
+          (kill-buffer))))))
+
+;; Jump forward to the next argument in a function or item in a list,
+;; and put it on a new line.  To re-indent a function, use C-M-j till
+;; you see the end-of-list, then use C-M-h once.  If a comma is
+;; already present at the end of the list, then use C-M-j instead of
+;; C-M-h at the end of the list.
+(fset 'newline-at-next-argument-or-item
+      [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
+(define-key my/keys-keymap "\C-\M-j" 'newline-at-next-argument-or-item)
+(fset 'newline-at-arglist-or-list-end
+      [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
+(define-key my/keys-keymap "\C-\M-h" 'newline-at-arglist-or-list-end)
+
+;; Used to continue search after M-x tags-search RET <term> RET
+(define-key my/keys-keymap "\M-," 'tags-loop-continue)
+
+(define-key my/keys-keymap (kbd "M-$") #'shell)
+(define-key my/keys-keymap (kbd "M-*") #'shell)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Full width comment box                                                 ;;
+;; from http://irreal.org/blog/?p=374                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun bjm-comment-box (b e)
+  (interactive "r")
+  (let ((e (copy-marker e t)))
+    (goto-char b)
+    (end-of-line)
+    (insert-char ?  (- fill-column (current-column)))
+    (comment-box b e 1)
+    (goto-char e)
+    (set-marker e nil)))
+
+(define-key my/keys-keymap (kbd "C-c b b") 'bjm-comment-box)
+
+;; Eval-region similar to eval-sexp (overwriting find-file-read-only)
+(define-key my/keys-keymap (kbd "C-x C-r") 'eval-region)
+
+;; Write a commit message in emacs.  To exit, do C-c C-c.  Plays well
+;; with Tramp.
+(define-key my/keys-keymap (kbd "C-c c") 'magit-commit-create)
+;; Beginnings of conversion to the magit cult
+(define-key my/keys-keymap (kbd "C-c x") 'magit-commit-extend) ; --amend --no-edit
+(define-key my/keys-keymap (kbd "C-c z") 'magit-commit-amend)
+(define-key my/keys-keymap (kbd "C-c r") 'magit-rebase)
+(define-key my/keys-keymap (kbd "C-c d") 'magit-diff)
+(define-key my/keys-keymap (kbd "C-c t") 'magit-status)
+(define-key my/keys-keymap (kbd "C-c m") 'magit-status)
+
+;; https://www.emacswiki.org/emacs/BuildTags#toc4
+(defun create-tags (dir-name glob)
+  "Create tags file."
+  (interactive "DDirectory: \nsName glob: ")
+  (eshell-command 
+   (format "find %s -type f -name \"%s\" | etags -" dir-name glob)))
+
+;;;;;;;;;;;; DUMB JUMP CONFIG
+(setq dumb-jump-default-project "~/code/")
+;; Uses git grep unless not a git project. (obsolete with xref)
+(setq dumb-jump-prefer-searcher 'rg)
+;; Dumb jump mode overwrites C-M-q, just name each useful command
+;; instead.
+(define-key my/keys-keymap (kbd "M-.") #'dumb-jump-go)
+(define-key my/keys-keymap (kbd "C-M-.") #'dumb-jump-back)
+;; M-? is xref-find-references
+;; (define-key my/keys-keymap (kbd "C-M-.") #'dumb-jump-go-prompt)
+(define-key my/keys-keymap (kbd "C-M-,") #'dumb-jump-quick-look)
+;;;;;;;;;;;; END DUMB JUMP CONFIG
+
+;; cycle snake_case, camelCase, etc
+(require 'string-inflection)
+(define-key my/keys-keymap (kbd "C-c C-u") 'string-inflection-all-cycle)
+(define-key my/keys-keymap (kbd "C-c u") 'string-inflection-all-cycle)
+
+;; ;; Kill and replace the sexp at point, ending with the last yank at
+;; ;; the top of the kill ring.
+(fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
+(define-key my/keys-keymap "\C-\M-y" 'replace-sexp-at-point)
+
+;; End common commands
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; BEGIN AUTOGEN (dashboard depends on Emacs 25.3)                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("e4486d0ad184fb7511e391b6ecb8c4d7e5ab29e2d33bc65403e2315dbacaa4aa" default))
+ '(flycheck-javascript-flow-args nil)
+ '(flycheck-python-pycompile-executable "python3")
+ '(package-selected-packages
+   '(link-hint string-inflection sudo-edit package filladapt csv csv-mode jupyter git-auto-commit-mode python-docstring pdf-tools markdown-mode browse-kill-ring move-text dumb-jump yaml-mode web-mode use-package magit)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(default ((t (:height 200 :family "Menlo")))))
+
+
+;; end Autogen
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Python settings                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Python docstrings fill-paragraph conforms to community convention
+(add-hook 'python-mode-hook 'python-docstring-mode)
+
+;; Keys for indentation
+(define-key my/keys-keymap (kbd "C-.") #'python-indent-shift-right)
+(define-key my/keys-keymap (kbd "C-,") #'python-indent-shift-left)
+
+;; Treat word_word or wordWord as word boundaries
+(global-subword-mode 1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+
+;; End Python settings
