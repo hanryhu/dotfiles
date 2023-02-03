@@ -1,0 +1,416 @@
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# BEGIN suppress dumb term warning
+if [[ -n $INSIDE_EMACS ]]; then
+    export TERM=xterm-256color
+fi  # MUST come before pinterest bashrc
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+#shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+	# We have color support; assume it's compliant with Ecma-48
+	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+	# a case would tend to support setf rather than setaf.)
+	color_prompt=yes
+    else
+	color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# colored GCC warnings and errors
+#export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# some more ls aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Add an "alert" alias for long running commands.  Use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+export USER_ID=$(id -u $USER)
+export GROUP_ID=$(id -g $USER)
+
+export HOME=$(readlink -f ~)
+export GOPATH=$HOME/code/magnus
+export GOROOT=$HOME/go/
+export PATH=$HOME/code/magnus/scripts/bin18:$HOME/code/magnus/bin:$PATH
+export PATH=/home/hhu/.local/bin:$PATH
+
+# BEGIN explicitly set less pager
+export PAGER="less"
+# END explicitly set less pager
+
+source ~/.wd-history
+
+export DIFF_REVIEW_PREFIX="henryhu-diff-review-"
+#BEGIN git aliases
+function gs ()
+{
+    # Show branches with diff review prefixes and also excluding backup branches
+    git branch | sed "s/$DIFF_REVIEW_PREFIX\(.*\)/\1 \t\t($DIFF_REVIEW_PREFIX\1)/" | sed 's/\(\s*\).*-backup)$/\1\t... (backup)/'
+    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    git status
+}
+# alias gs='git status'
+function git-log-title-body-only () {
+    git log --format='%Cgreen%s%n%Creset%b'
+}
+alias gltbo=git-log-title-body-only
+#END git aliases
+# Begin ls color setup
+alias ls='ls -GpF'
+alias ll='ls -lh'
+export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+# End ls color setup
+# delete all merged branches
+# From https://devconnected.com/how-to-clean-up-git-branches/
+alias git-clean-branches='git branch --color=never --merged | egrep -v "(^\*|master|dev)" | xargs git branch -d'
+# end delete all merged branches
+# Begin git cherry-pick alias
+alias gcp='git cherry-pick'
+# end git cherry-pick alias
+# Begin git pull origin master alias
+function gpom ()
+{
+    echo 'git pull origin master;'
+    git pull origin master;
+}
+function gfom ()
+{
+    echo 'git fetch origin master;'
+    git fetch origin master;
+}
+# end git pull origin master alias
+# Begin git checkout alias
+# alias go='git checkout'
+alias gb='git branch'
+alias gob='git checkout -b'
+# end git checkout alias
+# better which
+alias which=type
+# end better which
+# BEGIN update bashrc
+alias eb="emacs ~/.bashrc"
+alias sb="source ~/.bashrc"
+# END update bashrc
+
+export PS1="\h:\w\$ "
+
+function dtach-screen () {
+    # Use dtach to manage sessions.  The issue is that it doesn't save
+    # output (scrollback), so we just redirect all output.  You can
+    # examine output with action out (perhaps piped into less).  You
+    # can examine the tail of output with action tail.
+    filename="$1"
+    if [[ -z $1 ]] ; then
+        filename='mydtach'
+    fi
+    mkdir -p /tmp/dtachsockets/
+    fullfilename="/tmp/dtachsockets/$filename"
+    echo "Entering dtach at $fullfilename.  To get out, use C-\."
+    echo "Remember to redirect outputs to log files before detaching >> /tmp/log."
+    dtach -A "$fullfilename" -r none -z bash
+    # if [[ $2 == "out" ]] ; then
+    #     cat "$fullfilename.out"
+    # elif [[ $2 == "" ]] ; then
+    #     # Existing session.  attach
+    #     touch "$fullfilename.out"
+    #     # dtach -A "$fullfilename" -r ctrl_l -z bash >> "$fullfilename.out" 2>&1
+    # elif [[ $2 == "watch" ]] ; then
+    #     # r: interpret colors (call in ansi-term or term only!)
+    #     # f: Force open binary files
+    #     # +F: watch for append.
+    #     less -rf +F "$fullfilename.out"
+    # elif [[ $2 == "tail" ]] ; then
+    #     tail "$fullfilename.out"
+    # else
+    #     echo "Usage: dtach-screen [sessionname] [out|watch]"
+    # fi
+}
+alias ds=dtach-screen
+alias ho="source hologram use engineer"
+
+function dock () {
+    echo "Entering docker bash cuda 11.3.1"
+    pushd ~/code/pinboard/machine-learning/
+    ./scripts/bin/idoc -d docker/Dockerfile-cuda11.3.1-cudnn8-ubuntu18.04 bash
+}
+alias dk=dock
+
+function ad () {
+    echo "~~~ welcome to arc diff wrapper! ~~~"
+    if [[ "$1" = D* ]]; then
+        echo "usage: ad branch_name"
+        echo "your branch name starts with D.  I recommend you use 'au $1'"
+        return 1
+    fi
+    if [[ -z "$1" ]]; then
+        echo "usage: ad branch_name"
+        echo "empty branch name is no longer supported."
+        return 1
+    fi
+    branch_name="$DIFF_REVIEW_PREFIX$1"
+    echo "working changes include possibly untracked files and:"
+    git diff --name-status -M -C HEAD | sed 's/^/      /' || echo '      (none)'
+    echo "stashing working changes"
+    git stash save --include-untracked --message="automated-$branch_name" --quiet
+    echo "diff contents:"
+    git diff --name-status -M -C HEAD^ | sed 's/^/      /' || echo '      (none)'
+    head_msg=$(git log --format='%s' | head -n 1)
+    old_diff_title=$(head -n 1 ~/arc-diff-helpers/arc-diff-message)
+    if [[ "$head_msg" == "$old_diff_title" ]]; then
+        echo "reusing previous draft of diff message for this commit"
+    else
+        echo "backing up old message in ~/arc-diff-helpers/arc-diff-message.bak"
+        cp ~/arc-diff-helpers/arc-diff-message ~/arc-diff-helpers/arc-diff-message.bak
+        echo $head_msg > ~/arc-diff-helpers/arc-diff-message
+        cat ~/arc-diff-helpers/arc-diff-message.template >> ~/arc-diff-helpers/arc-diff-message
+    fi
+    read -r -p "press enter to confirm you have edited message ... (C-c to cancel) ~/arc-diff-helpers/arc-diff-message"
+    # cmp -s ~/arc-diff-helpers/arc-diff-message ~/arc-diff-helpers/arc-diff-message.template && (echo "exiting as message equals template." && return 1)
+    # Activate python venv for accurate lint. commented out bc repo-specific
+    # source ~/code/pinboard/.venv/bin/activate || (echo "There is no venv.  Install according to https://w.pinadmin.com/display/ENG/Python+3+Developer+Environment" && return 1)
+    arc diff --message-file ~/arc-diff-helpers/arc-diff-message HEAD^
+    # Branching has to happen after arc diff in case of lint amends.
+    echo "naming HEAD as $branch_name and making backup"
+    git branch -f --quiet "$branch_name"-backup "$branch_name"
+    git branch -f --quiet "$branch_name"
+    echo "popping stash"
+    git stash pop --quiet
+}
+
+function au () {
+    echo "~~~ welcome to arc diff update wrapper! ~~~"
+    if [[ "$1" != D* ]]; then
+        echo "usage: au diff_number branch_name"
+        echo "your diff number does not start with D.  Did you mean 'ad $@'?"
+        return 1
+    fi
+    if [[ -z "$2" ]]; then
+        echo "usage: au diff_number branch_name"
+        echo "empty branch name is no longer supported."
+        return 1
+    fi
+    branch_name="$DIFF_REVIEW_PREFIX$2"
+    echo "working changes include possibly untracked files and:"
+    git diff --name-status -M -C HEAD | sed 's/^/      /' || echo '      (none)'
+    echo "stashing working changes"
+    git stash save --include-untracked --message="automated-$branch_name" --quiet
+    echo "diff contents:"
+    git diff --name-status -M -C HEAD^ | sed 's/^/      /' || echo '      (none)'
+    echo "default: '"$(cat ~/arc-diff-helpers/arc-diff-update-message)"'"
+    message_prefix="Update diff $1:"
+    read -r -p "enter update message (C-c to cancel): $message_prefix "
+    cat ~/arc-diff-helpers/arc-diff-update-message >> ~/arc-diff-helpers/arc-diff-update-message.bak
+    if [[ -n $REPLY ]]; then
+        echo "$message_prefix $REPLY" > ~/arc-diff-helpers/arc-diff-update-message
+    fi
+    # Activate python venv for accurate lint. commented out bc repo-specific
+    # source ~/code/pinboard/.venv/bin/activate || (echo "There is no venv.  Install according to https://w.pinadmin.com/display/ENG/Python+3+Developer+Environment" && return 1)
+    final_message="$(cat ~/arc-diff-helpers/arc-diff-update-message)"
+    echo "Using message: $final_message"
+    arc diff --update "$1" --message "$final_message" HEAD^
+    # Branching has to happen after arc diff in case of lint amends.
+    echo "naming HEAD as $branch_name and making backup"
+    git branch -f --quiet "$branch_name"-backup "$branch_name"
+    git branch -f --quiet "$branch_name"
+    echo "popping stash"
+    git stash pop --quiet
+}
+
+function al () {
+    if [[ -z "$1" ]]; then
+        echo "usage: al branch_name"
+        echo "empty branch name is no longer supported."
+        return 1
+    fi
+    echo "~~~ welcome to arc land wrapper! ~~~"
+    branch_name="$DIFF_REVIEW_PREFIX$1"
+    echo "landing branch named $branch_name"
+    echo "working changes include possibly untracked files and:"
+    git diff --name-status -M -C HEAD | sed 's/^/      /' || echo '      (none)'
+    echo "stashing working changes"
+    git stash save --include-untracked --message="automated-$branch_name" --quiet
+    echo "changes to land include:"
+    git diff --name-status -M -C "$branch_name^" "$branch_name" | sed 's/^/      /'
+    read -r -p "press enter to confirm land ... (C-c to cancel)"
+    # Activate python venv for accurate lint. commented out bc repo-specific
+    # source ~/code/pinboard/.venv/bin/activate || (echo "There is no venv.  Install according to https://w.pinadmin.com/display/ENG/Python+3+Developer+Environment" && return 1)
+    arc land "$branch_name"
+    echo "popping stash"
+    git stash pop --quiet
+}
+
+function ap () {
+    if [[ -z "$1" ]]; then
+        echo "usage: ap D######"
+        return 1
+    fi
+    echo "arc patch $1"
+    echo "Applying patch..."
+    # Consider adding stash logic.
+    arc patch "$1"
+}
+
+function ac () {
+    if [[ -z "$1" ]]; then
+        echo "usage: ac branch_name"
+        echo "empty branch name is no longer supported."
+        return 1
+    fi
+    echo "~~~ arc checkout $1 ~~~"
+    branch_name="$DIFF_REVIEW_PREFIX$1"
+    echo "checking out branch named $branch_name"
+    echo "working changes include possibly untracked files and:"
+    git diff --name-status -M -C HEAD | sed 's/^/      /' || echo '      (none)'
+    echo "stashing working changes"
+    git stash save --include-untracked --message="automated-$branch_name" --quiet
+    git checkout "$branch_name" 2>/dev/null || (echo "~~~ branch doesn't exist.  Making new branch $branch_name ~~~"; git checkout -b "$branch_name")
+    echo "popping stash"
+    git stash pop --quiet
+}
+
+function ak () {
+    if [[ -z "$1" ]]; then
+        echo "usage: ak branch_name"
+        echo "empty branch name is no longer supported."
+        return 1
+    fi
+    echo "~~~ arc kill $1 ~~~"
+    branch_name="$DIFF_REVIEW_PREFIX$1"
+    echo "working changes include possibly untracked files and:"
+    echo "changes in branch include:"
+    git diff --name-status -M -C "$branch_name^" "$branch_name" | sed 's/^/      /'
+    echo "changes in branch backup include:"
+    git diff --name-status -M -C "$branch_name"-backup^ "$branch_name"-backup | sed 's/^/      /'
+    read -r -p "press enter to confirm killing this branch and its backup ... (C-c to cancel)"
+    git branch -D "$branch_name"
+    git branch -D "$branch_name"-backup
+}
+
+# From https://stackoverflow.com/questions/12198222/go-up-several-directories-in-linux
+# cd up to n dirs
+# usage: up 10  up dir
+function up() {
+    case $1 in
+        *[!0-9]*)                                          # if not a number
+            echo "going up to $1"
+            pushd $( pwd | sed -r "s|(.*/$1[^/]*/).*|\1|" )     # search dir_name in current path, if found - cd to it
+            ;;                                               # if not found - not cd
+        *)
+            if [[ -z $1 ]]; then
+                echo "going up"
+            else
+                echo "going up $1 times"
+            fi
+            pushd $(printf "%0.0s../" $(seq 1 $1));             # cd ../../../../  (N dirs)
+            ;;
+    esac
+}
+alias '..'=up                                # can not name function 'cd..'
+
+alias gu="git commit --amend --no-edit"
+alias gr="git add-unmerged; echo 'resolved all'"
+
+# Ignore all files that are currently deleted, forever.
+# (https://orangenarwhals.com/2020/12/fun-with-git-how-to-ignore-locally-deleted-files-in-git-status-if-youre-running-out-of-hard-drive-space/)
+alias git-ignore-deleted="git ls-files --deleted -z | git update-index --assume-unchanged -z --stdin"
+alias git-unignore="git update-index --no-assume-unchanged --stdin"
+alias git-see-ignored="git ls-files -v | grep \"^[a-z]\" | sed 's/^[a-z] \(.*$\)/\1/'"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+alias q="echo 'nothing to quit :)'"

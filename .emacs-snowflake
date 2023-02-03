@@ -22,6 +22,15 @@
 (require 'package)
 (setq package-enable-at-startup nil)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+;; Try to prevent weird "Error (bytecomp): Invalid read syntax: "#"'
+;; (byte-recompile-directory (expand-file-name "~/.emacs.d") 0)
+
+;; To prevent weird compile error, "defvar-1" (this is probably caused
+;; by bad multi-versioning) you can also reinstall .emacs.d.
+
+;; Emacs head 29.1 intermittently freezes during tramp shell session
+;; with 100% CPU when overwriting a highlighted shell command.
+;; Turning off flycheck + company didn't help.
 
 (setq default-directory (getenv "HOME"))
 (unless (package-installed-p 'use-package)
@@ -36,18 +45,19 @@
             'browse-kill-ring
 	    'company-flow
             'counsel                    ; for ivy
+            'counsel-fd
 	    'dashboard			; Depends on Emacs 25.3
             'diminish
 	    'dumb-jump
             'el-get                     ; for slack
             'emojify                    ; for slack
             'filladapt
-	    'flycheck-flow   
-	    'fzf
             'ivy
-           'inf-ruby
+            'inf-ruby
+            'link-hint
 	    'magit
             'markdown-mode              ; for markdown-follow-thing-at-point
+            'monokai-pro-theme              ; for remote buffers
 	    'move-text       
 	    'prettier-js
             'python-docstring
@@ -65,6 +75,7 @@
 ;; Zenburn theme
 (add-to-list 'custom-theme-load-path "~/.emacs.d/zenburn-emacs")
 (load-theme 'zenburn t)
+;; (load-theme 'monokai-pro-ristretto t)
 
 ;; Possibly fixes some package-install: Bad Request errors
 ;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
@@ -97,12 +108,14 @@
 ;;; common-emacs file.
 (setq folding-auto-start nil)
 
+(display-time-mode 1)
+
 ;;; Turn off lockfiles.  Leaves me vulnerable to getting work
 ;;; overwritten by separate instances of Emacs, but prevents bogus
 ;;; file lock messages when using a computer with a dynamic IP.
-;;; (setq create-lockfiles nil)
+(setq create-lockfiles nil)
 
-;;;(add-to-list 'default-frame-alist '(fullscreen . maximized)) ;start emacs maximized
+(add-to-list 'default-frame-alist '(fullscreen . maximized)) ;start emacs maximized
 
 ;; Enable mouse support
 (unless window-system
@@ -117,9 +130,16 @@
   (defun track-mouse (e))
   (setq mouse-sel-mode t)
   )
+(use-package link-hint
+  :ensure t
+  :bind
+  ("H-o" . link-hint-open-link-at-point)
+  ("H-i" . link-hint-copy-link))
 ;; ...follow-thing... doesn't work in elisp comments
-(define-key my/keys-keymap (kbd "H-o") 'markdown-follow-link-at-point)
-(define-key my/keys-keymap (kbd "<f11>") 'toggle-fullscreen)
+;; ...follow-link... doesn't work in shell
+;; (define-key my/keys-keymap (kbd "H-o") 'markdown-follow-link-at-point)
+
+(define-key my/keys-keymap (kbd "H-f") 'toggle-frame-maximized)
 
 ;; Solid, unblinking cursor
 (blink-cursor-mode 0)
@@ -139,13 +159,15 @@
 frame on the right-hand monitor (switching to it), and maximize
 it."
   (interactive)
-  (make-frame '(;; (name . "*frame")
-                (top . 0)
-                (left . 3440)
-                ;; (width . (text-pixels . 1080))
-                ;; (height . (text-pixels . 1920))
-                ))
-  (toggle-frame-maximized))
+    (let ((fudge 50))
+      (make-frame '(;; (name . "*frame")
+                    (top . 0)
+                    (left . (+ 3440 fudge))
+                    ;; (width . (text-pixels . 1080))
+                    ;; (height . (text-pixels . 1920))
+                    )))
+  ;; (toggle-frame-maximized)
+  )
 (defun make-frame-vertical-on-left ()
   "make new frame on left and maximize."
   (interactive)
@@ -155,9 +177,36 @@ it."
                 ;; (width . (text-pixels . 1080))
                 ;; (height . (text-pixels . 1920))
                 ))
-  (toggle-frame-maximized))
+  ;; (toggle-frame-maximized)
+  )
+(defun make-frame-vertical-on-top ()
+  "make new frame on top and maximize, assuming 3440 x 1440 centered-ish on top of the primary 1728 x 1117 monitor."
+  (interactive)
+  (let ((fudge 50))
+    (make-frame '(;; (name . "*frame")
+                  (top . -1440)
+                  (left . -1000)
+                  ;; (width . (text-pixels . 1080))
+                  ;; (height . (text-pixels . 1920))
+                  )))
+  ;; (toggle-frame-maximized)
+  )
+(define-key my/keys-keymap (kbd "C-x 5 u") 'make-frame-vertical-on-left) ; make on top in a vertical monitor setup is same as on left
 (define-key my/keys-keymap (kbd "C-x 5 r") 'make-frame-vertical-on-right)
 (define-key my/keys-keymap (kbd "C-x 5 l") 'make-frame-vertical-on-left)
+
+;;; Save session 
+(desktop-save-mode 1)
+;; https://stackoverflow.com/questions/4053708/emacs-desktop-doesnt-remember-tramp-connections
+;; "By default it is set to a regexp that matches TRAMP filenames. I
+;; would have expected setting it to nil would have worked, but, alas,
+;; it does not."
+(setq desktop-buffers-not-to-save "^$")
+(setq desktop-files-not-to-save "^$")   ; I don't know the exact emacs version but this is the older name for the variable.
+;;; But don't save frame/window configuration, just buffers (ex. for
+;;; code search)
+(setq desktop-restore-frames nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Horizontal scrolling setup                                             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -229,6 +278,9 @@ It can also be nil, which means the first value in `recenter-positions'.")
 (define-key my/keys-keymap (kbd "M-l") 'my-horizontal-recenter)
 (define-key my/keys-keymap (kbd "M-i") 'scroll-right-and-move-point)
 (define-key my/keys-keymap (kbd "M-o") 'scroll-left-and-move-point)
+;; In wrap mode, go to previous logical line instead of visual line.
+(define-key my/keys-keymap (kbd "C-S-p") 'previous-logical-line)
+(define-key my/keys-keymap (kbd "C-S-n") 'next-logical-line)
 
 ;;; Start in fullscreen
 (defun my-fullscreen ()
@@ -287,6 +339,16 @@ It can also be nil, which means the first value in `recenter-positions'.")
         markdown-mode-hook
         global-magit-file-mode-hook))
 
+;;; Stefan Monnier <foo at acm.org>. It is the opposite of fill-paragraph    
+(defun unfill-paragraph (&optional region)
+  "Takes a multi-line paragraph and makes it into a single line of text."
+  (interactive (progn (barf-if-buffer-read-only) '(t)))
+  (let ((fill-column (point-max))
+        ;; This would override `fill-column' if it's an integer.
+        (emacs-lisp-docstring-fill-column t))
+    (fill-paragraph nil region)))
+(define-key global-map "\M-Q" 'unfill-paragraph)
+
 ;;;When point is on a paired character the other is highlighted at no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
@@ -294,6 +356,7 @@ It can also be nil, which means the first value in `recenter-positions'.")
 
 ;;; EDiffs split with windows on left and right instead of top and bottom
 (setq ediff-split-window-function (quote split-window-horizontally))
+(define-key my/keys-keymap (kbd "C-x x x") 'exit-recursive-edit)
 
 ;;; Keep windows balanced -- allows C-x 3 C-x 3 to make 3 equal
 ;;; vertical windows https://stackoverflow.com/a/58136628
@@ -342,8 +405,18 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
                 (y-or-n-p "Very long lines detected - continue without a major mode? "))
        (fundamental-mode)))))
 
+;; Prevent slow catchup when emacs is waiting on a fast but
+;; high-output command in M-x shell.
+;; (defun my-clear ()
+;;   (interactive)
+;;   (let ((comint-buffer-maximum-size 0))
+;;     (comint-truncate-buffer)))
+;; (define-key my/keys-keymap (kbd "C-c C-w") 'my-clear)
+
 ;;; Prevent company from lowercasing autocompletions.
-(setq company-dabbrev-downcase nil)
+;; (setq company-dabbrev-downcase nil)
+;; company is very frustratingly hangy for ssh tramp.
+;; (company-mode 0)
 
 ;;; Use Ivy, especially for emoji
 (ivy-mode)
@@ -360,15 +433,15 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (define-key my/keys-keymap (kbd "C-x C-f") 'counsel-find-file)
 (define-key my/keys-keymap (kbd "C-c g") 'counsel-git)
 (define-key my/keys-keymap (kbd "C-c j") 'counsel-git-grep)
-(define-key my/keys-keymap (kbd "C-c k") 'counsel-ag)
+;; Rebound by comint-stfu
+;; (define-key my/keys-keymap (kbd "C-c k") 'counsel-ag)
 (define-key my/keys-keymap (kbd "C-x l") 'counsel-locate)
 (define-key my/keys-keymap (kbd "C-S-o") 'counsel-rhythmbox)
 
 (setq ivy-count-format "%d/%d ")
 ;;; ~/ is muscle memory, plus emacs autosaves have ~.  See
 ;;; https://github.com/abo-abo/swiper/commit/83121769b411a49d1e58aab89e8c800810b223c0
-;;; Tip: to go to local file during a TRAMP session, type ~/~/ or /
-;;; C-j.
+;;; Tip: to go to local file during a TRAMP session, type ~/~/
 (setq ivy-magic-tilde '())
 ;;; Match queries in any order "example for" matches "for example"
 (setq ivy-re-builders-alist
@@ -382,6 +455,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;;     would select that existing file, which isn't what you want -
 ;;     use this command instead. tags: quote, literal
 (define-key my/keys-keymap (kbd "C-<return>") 'ivy-immediate-done)
+;; On second thought, idc.  C-j is still most natural to me.
+(define-key my/keys-keymap (kbd "C-j") 'ivy-immediate-done)
 
 ;; Using wd in shell (see .wd-history) messes up Emacs's current
 ;; working directory (used for find-file).  Resync (aka M-<return>).
@@ -395,7 +470,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   :diminish dashboard-mode
   :config
   (setq dashboard-banner-logo-title "Welcome to emacs!")
-  (setq dashboard-startup-banner "/Users/henryhu/Pictures/lake.jpg")
+  ;; (setq dashboard-startup-banner "/Users/henryhu/Pictures/lake.jpg")
   (setq dashboard-items '((recents  . 10)
                           (bookmarks . 10)))
   (dashboard-setup-startup-hook))	; Depends on emacs 25.3
@@ -440,6 +515,15 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   (interactive)
   (shell-command "echo You rolled a $((1 + RANDOM % 6))\\! &"))
 
+(defun show-file-name ()
+  "Show the full path file name in the minibuffer and kill it."
+  (interactive)
+  (kill-new (buffer-file-name))
+  (message (buffer-file-name)))
+(defalias 'pwd 'show-file-name)
+
+;; Consider nonexecutables in shell autocomplete
+(setq shell-command-execonly nil)
 
 ;; https://www.emacswiki.org/emacs/IncrementNumber
 (defun my-increment-number-decimal (&optional arg)
@@ -461,6 +545,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 ;; Enable super-merge mode better prefix binding
 (setq smerge-command-prefix "\C-cs")
+(define-key my/keys-keymap (kbd "C-c s s") #'smerge-mode)
 
 (define-key my/keys-keymap (kbd "C-j") #'newline-and-indent)
 
@@ -504,10 +589,10 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; already present at the end of the list, then use C-M-j instead of
 ;; C-M-h at the end of the list.
 (fset 'newline-at-next-argument-or-item
-      [?\C-\M-s ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ return ?\C-j])
+      [?\C-\M-s ?\\ ?\(  ?\( ?\\ ?| ?, ?\\ ?| ?\\ ?\[ ?\\ ?\) return ?\C-j])
 (define-key my/keys-keymap "\C-\M-j" 'newline-at-next-argument-or-item)
 (fset 'newline-at-arglist-or-list-end
-      [?\C-\M-s ?\) ?\\ ?| ?\\ ?\] return ?\C-b ?\, ?\C-j ?\C-f])
+      [?\C-\M-s ?\\ ?\( ?\) ?\\ ?| ?\\ ?\] ?\\ ?\) return ?\C-b ?\, ?\C-j ?\C-f])
 (define-key my/keys-keymap "\C-\M-h" 'newline-at-arglist-or-list-end)
 
 ;; Used to continue search after M-x tags-search RET <term> RET
@@ -575,14 +660,15 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (define-key my/keys-keymap (kbd "C-c t") 'magit-status)
 (define-key my/keys-keymap (kbd "C-c m") 'magit-status)
 
-(require 'ansi-color)
+;; (require 'ansi-color)
 ;; function for colorizing
-(defun colorize-buffer ()
-  (interactive)
-  (toggle-read-only)
-  (ansi-color-apply-on-region (point-min) (point-max))
-  (toggle-read-only))
-(define-key my/keys-keymap (kbd "C-c o") 'colorize-buffer)
+;; Confuses m-x term.
+;; (defun colorize-buffer ()
+;;   (interactive)
+;;   (toggle-read-only)
+;;   (ansi-color-apply-on-region (point-min) (point-max))
+;;   (toggle-read-only))
+;; (define-key my/keys-keymap (kbd "C-c o") 'colorize-buffer)
 
 ;; https://www.emacswiki.org/emacs/BuildTags#toc4
 (defun create-tags (dir-name glob)
@@ -598,11 +684,11 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; After doing so, without moving point, use
 ;; investigate-whoami-input-without-subject-substitutions to submit
 ;; the same query without the subject substitutions.
-(fset 'copy-paste-whoami-input-line
-      [?\C-s ?\" return ?\C-  ?\C-s ?\( ?\[ return ?\C-b ?\C-b ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?  ?| ?| ?  ?\C-x ?o ?\C-s ?\( ?\[ return ?\C-  ?\C-s ?\] ?\) return ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?\C-p ?\C-p ?\C-p ?\C-\M-% ?\' ?, ?  ?\' return ?& ?& return ?! ?\C-p ?\C-p ?\C-p ?\C-\M-% ?| ?| ?  ?\' return ?| ?| ?  return ?! ?\M-> backspace return ?\C-x ?o ?\C-n ?\C-a])
-(fset 'investigate-whoami-input-without-subject-substitutions
-      [?\C-x ?o ?\C-r ?| ?| ?\C-r return ?\C-  ?\C-r ?> ?  return ?\C-f ?\C-f ?\M-w ?\M-> ?\C-y return ?\C-x ?o])
-(define-key my/keys-keymap (kbd "C-c C-w") 'copy-paste-whoami-input-line)
+;; (fset 'copy-paste-whoami-input-line
+;;       [?\C-s ?\" return ?\C-  ?\C-s ?\( ?\[ return ?\C-b ?\C-b ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?  ?| ?| ?  ?\C-x ?o ?\C-s ?\( ?\[ return ?\C-  ?\C-s ?\] ?\) return ?\C-b ?\C-b ?\M-w ?\C-x ?o ?\C-y ?\C-p ?\C-p ?\C-p ?\C-\M-% ?\' ?, ?  ?\' return ?& ?& return ?! ?\C-p ?\C-p ?\C-p ?\C-\M-% ?| ?| ?  ?\' return ?| ?| ?  return ?! ?\M-> backspace return ?\C-x ?o ?\C-n ?\C-a])
+;; (fset 'investigate-whoami-input-without-subject-substitutions
+;;       [?\C-x ?o ?\C-r ?| ?| ?\C-r return ?\C-  ?\C-r ?> ?  return ?\C-f ?\C-f ?\M-w ?\M-> ?\C-y return ?\C-x ?o])
+;; (define-key my/keys-keymap (kbd "C-c C-w") 'copy-paste-whoami-input-line)
 ;; (define-key my/keys-keymap (kbd "C-c C-s") 'investigate-whoami-input-without-subject-substitutions)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -621,62 +707,62 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Slack integration
-(use-package slack
-  :commands (slack-start)
-  :init
-  (setq slack-buffer-emojify t)
-  (setq slack-prefer-current-team t)
-  :config
-  ;; (slack-register-team
-  ;;  :name "infolab-csail"
-  ;;  :default t
-  ;;  ;; In ~/.authinfo:
-  ;;  ;;    machine infolab-csail.slack.com login henryhu@mit.edu password XXX
-  ;;  :token (auth-source-pick-first-password
-  ;;          :host "infolab-csail.slack.com"
-  ;;          :user "henryhu@mit.edu")
-  ;;  :full-and-display-names t)
-  (slack-register-team
-   :name "stripe"
-   :default t
-   :token (auth-source-pick-first-password
-           :host "stripe.slack.com"
-           :user "henryhu@stripe.com")
-   :cookie (auth-source-pick-first-password
-            :host "stripe.slack.com"
-            :user "henryhu@stripe.com^cookie")
-   :full-and-display-names t
-   :subscribed-channels '(("supint-private"))))
+;; (use-package slack
+;;   :commands (slack-start)
+;;   :init
+;;   (setq slack-buffer-emojify t)
+;;   (setq slack-prefer-current-team t)
+;;   :config
+;;   ;; (slack-register-team
+;;   ;;  :name "infolab-csail"
+;;   ;;  :default t
+;;   ;;  ;; In ~/.authinfo:
+;;   ;;  ;;    machine infolab-csail.slack.com login henryhu@mit.edu password XXX
+;;   ;;  :token (auth-source-pick-first-password
+;;   ;;          :host "infolab-csail.slack.com"
+;;   ;;          :user "henryhu@mit.edu")
+;;   ;;  :full-and-display-names t)
+;;   (slack-register-team
+;;    :name "stripe"
+;;    :default t
+;;    :token (auth-source-pick-first-password
+;;            :host "stripe.slack.com"
+;;            :user "henryhu@stripe.com")
+;;    :cookie (auth-source-pick-first-password
+;;             :host "stripe.slack.com"
+;;             :user "henryhu@stripe.com^cookie")
+;;    :full-and-display-names t
+;;    :subscribed-channels '(("supint-private"))))
 
 (use-package alert
   :commands (alert)
   :init
   (setq alert-default-style 'notifier))
 
-(global-set-key (kbd "C-c s") 'slack-start)
+;; (global-set-key (kbd "C-c s") 'slack-start)
 (define-key my/keys-keymap (kbd "C-c e") 'emojify-insert-emoji)
-(defun setup-slack-keymaps ()
-  ;; Surprise! Rebind after slack init
-  (global-set-key (kbd "C-c s") 'slack-select-rooms)
+;; (defun setup-slack-keymaps ()
+;;   ;; Surprise! Rebind after slack init
+;;   (global-set-key (kbd "C-c s") 'slack-select-rooms)
 
-  (define-key slack-info-mode-map "\C-x\C-v" 'slack-room-update-messages)
-  (define-key slack-mode-map "\C-x\C-v" 'slack-room-update-messages)
-  (define-key slack-mode-map "\C-x\C-k" 'slack-buffer-kill)
-  (define-key slack-mode-map "\C-c\C-a" 'slack-message-add-reaction)
-  (define-key slack-mode-map "\C-c\C-r" 'slack-message-remove-reaction)
-  (define-key slack-mode-map "\C-c\C-s" 'slack-message-show-reaction-users)
-  (define-key slack-mode-map "\C-c\C-e" 'slack-message-edit)
-  (define-key slack-mode-map "\C-c\C-d" 'slack-message-delete)
-  (define-key slack-mode-map "\C-c\C-m" 'slack-message-embed-mention)
-  (define-key slack-mode-map "\C-c\C-c" 'slack-message-embed-channel)
-  (define-key slack-mode-map "\M-n" 'slack-buffer-goto-next-message)
-  (define-key slack-mode-map "\M-p" 'slack-buffer-goto-prev-message)
-  (define-key slack-mode-map "\C-c\C-u" 'slack-file-upload)
-  (define-key slack-edit-message-mode-map "\C-c\C-k" 'slack-message-cancel-edit)
-  (define-key slack-edit-message-mode-map "\C-c\C-m" 'slack-message-embed-mention)
-  (define-key slack-edit-message-mode-map "\C-c\C-ec" 'slack-message-embed-channel)
-  (define-key slack-mode-map "\C-c\C-u" 'slack-file-upload))
-(advice-add 'slack-start :after #'setup-slack-keymaps)
+;;   (define-key slack-info-mode-map "\C-x\C-v" 'slack-room-update-messages)
+;;   (define-key slack-mode-map "\C-x\C-v" 'slack-room-update-messages)
+;;   (define-key slack-mode-map "\C-x\C-k" 'slack-buffer-kill)
+;;   (define-key slack-mode-map "\C-c\C-a" 'slack-message-add-reaction)
+;;   (define-key slack-mode-map "\C-c\C-r" 'slack-message-remove-reaction)
+;;   (define-key slack-mode-map "\C-c\C-s" 'slack-message-show-reaction-users)
+;;   (define-key slack-mode-map "\C-c\C-e" 'slack-message-edit)
+;;   (define-key slack-mode-map "\C-c\C-d" 'slack-message-delete)
+;;   (define-key slack-mode-map "\C-c\C-m" 'slack-message-embed-mention)
+;;   (define-key slack-mode-map "\C-c\C-c" 'slack-message-embed-channel)
+;;   (define-key slack-mode-map "\M-n" 'slack-buffer-goto-next-message)
+;;   (define-key slack-mode-map "\M-p" 'slack-buffer-goto-prev-message)
+;;   (define-key slack-mode-map "\C-c\C-u" 'slack-file-upload)
+;;   (define-key slack-edit-message-mode-map "\C-c\C-k" 'slack-message-cancel-edit)
+;;   (define-key slack-edit-message-mode-map "\C-c\C-m" 'slack-message-embed-mention)
+;;   (define-key slack-edit-message-mode-map "\C-c\C-ec" 'slack-message-embed-channel)
+;;   (define-key slack-mode-map "\C-c\C-u" 'slack-file-upload))
+;; (advice-add 'slack-start :after #'setup-slack-keymaps)
 
 ;; End common commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -690,21 +776,105 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (load "~/.emacs.d/stripemacs.el")
 
 ;;;;;;;;;;;; DUMB JUMP CONFIG
-(setq dumb-jump-default-project "~/stripe/pay-server")
+(setq dumb-jump-default-project "~/code/")
 (setq dumb-jump-force-searcher 'rg)
+(setq dumb-jump-selector 'ivy)          ;use ivy instead of popup if multiple matches
+(setq dumb-jump-confirm-jump-to-modified-file nil) ; warn instead of confirm
+(setq dumb-jump-disable-obsolete-warnings t)
+;; Uses git grep unless not a git project. (obsolete with xref)
+;; (setq dumb-jump-prefer-searcher 'rg)
 ;; Dumb jump mode overwrites C-M-q, just name each useful command
 ;; instead.
 (define-key my/keys-keymap (kbd "M-.") #'dumb-jump-go)
 (define-key my/keys-keymap (kbd "C-M-.") #'dumb-jump-back)
 ;; M-? is xref-find-references
-(define-key my/keys-keymap (kbd "C-M-.") #'dumb-jump-go-prompt)
+;; (define-key my/keys-keymap (kbd "C-M-.") #'dumb-jump-go-prompt)
 (define-key my/keys-keymap (kbd "C-M-,") #'dumb-jump-quick-look)
 ;;;;;;;;;;;; END DUMB JUMP CONFIG
 
-;; Use fzf to find files by name in the global context
-(define-key my/keys-keymap (kbd "C-c C-f") #'fzf)
+;; Use fd to find files by name in a local context
+(define-key my/keys-keymap (kbd "C-c C-f") #'counsel-fd-file-jump)
 ;; Prevent projectile errors for empty submodules without .gitmodules
 (setq projectile-git-submodule-command "")
+
+;; https://www.masteringemacs.org/article/searching-buffers-occur-mode
+;; Occur is useful for searching open buffers for a term dumbly.  For
+;; example, after a dumb jump on a remote host it's faster to go to a
+;; buffer with an existing term using occur than using dumb jump
+;; again.  Synergizes with desktop-save-mode.
+;; 
+;; Tip: use M-g M-n, M-g M-p to to to next/previous matches without
+;; switching to occur buffer.  Also, M-x occur-edit-mode (also bound
+;; to e) engages the edit mode in Occur.
+(defun occur-dwim ()
+  "Call `occur' with a sane default."
+  (interactive)
+  (push (if (region-active-p)
+            (buffer-substring-no-properties
+             (region-beginning)
+             (region-end))
+          (let ((sym (thing-at-point 'symbol)))
+            (when (stringp sym)
+              (regexp-quote sym))))
+        regexp-history)
+  (call-interactively 'occur))
+;; Show 2 lines of context for occur.
+(setq list-matching-lines-default-context-lines 2)
+
+(defun get-buffers-matching-mode (mode)
+  "Returns a list of buffers where their major-mode is equal to MODE"
+  (let ((buffer-mode-matches '()))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (when (eq mode major-mode)
+          (push buf buffer-mode-matches))))
+    buffer-mode-matches))
+
+;;; https://oremacs.com/2015/01/26/occur-dwim/
+(defun multi-occur-in-this-mode-dwim (search-query)
+  "Show all lines matching REGEXP in buffers with this major mode, dwim."
+  (interactive
+   (list (if (region-active-p)
+             ;; Take region if exists.
+             (buffer-substring-no-properties
+              (region-beginning)
+              (region-end))
+           ;; Otherwise default to symbol at point.
+           (read-string (format "Search in open buffers of type %s: " major-mode)
+                        (let ((sym (thing-at-point 'symbol)))
+                          (when (stringp sym)
+                            (regexp-quote sym)))))))
+  (multi-occur (get-buffers-matching-mode major-mode) search-query))
+
+(defun multi-occur-in-all-buffers-dwim (search-query)
+  "Show all lines matching REGEXP in all buffers, dwim."
+  (interactive
+   (list (if (region-active-p)
+             ;; Take region if exists.
+             (buffer-substring-no-properties
+              (region-beginning)
+              (region-end))
+           ;; Otherwise default to symbol at point.
+           (read-string (format "Search in all open buffers: " major-mode)
+                        (let ((sym (thing-at-point 'symbol)))
+                          (when (stringp sym)
+                            (regexp-quote sym)))))))
+  (multi-occur (buffer-list) search-query))
+
+(defun occur-multi-occur ()
+  "Starts multi-occur for the current search term on all buffers with the first matching buffer's major mode."
+  (interactive)
+  (multi-occur
+   (get-buffers-matching-mode (with-current-buffer (car (nth 2 occur-revert-arguments)) major-mode))
+   (car occur-revert-arguments)))
+
+(define-key my/keys-keymap (kbd "M-s m") 'multi-occur-in-this-mode-dwim)
+(define-key my/keys-keymap (kbd "M-s a") 'multi-occur-in-all-buffers-dwim)
+;; In isearch, use C-o to begin occur.
+(define-key isearch-mode-map (kbd "C-o") 'multi-occur-in-this-mode)
+;; In an occur buffer, use 'm' to expand search to multiple files
+(define-key occur-mode-map "m" 'occur-multi-occur)
+
 
 ;; cycle snake_case, camelCase, etc for ruby
 (require 'string-inflection)
@@ -731,12 +901,12 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("e4486d0ad184fb7511e391b6ecb8c4d7e5ab29e2d33bc65403e2315dbacaa4aa" default))
+   '("78e6be576f4a526d212d5f9a8798e5706990216e9be10174e3f3b015b8662e27" "fb83a50c80de36f23aea5919e50e1bccd565ca5bb646af95729dc8c5f926cbf3" "e3a1b1fb50e3908e80514de38acbac74be2eb2777fc896e44b54ce44308e5330" "b6269b0356ed8d9ed55b0dcea10b4e13227b89fd2af4452eee19ac88297b0f99" "b02eae4d22362a941751f690032ea30c7c78d8ca8a1212fdae9eecad28a3587f" "c8b83e7692e77f3e2e46c08177b673da6e41b307805cd1982da9e2ea2e90e6d7" "24168c7e083ca0bbc87c68d3139ef39f072488703dcdd82343b8cab71c0f62a7" "e4486d0ad184fb7511e391b6ecb8c4d7e5ab29e2d33bc65403e2315dbacaa4aa" default))
  '(flycheck-javascript-flow-args nil)
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   '(markdown-preview-mode sudo-edit dirvish which-key auctex protobuf-mode thrift scala-mode package company-emojify ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text inf-ruby dumb-jump robe fzf yaml-mode web-mode use-package prettier-js magit helm-projectile flycheck-flow company-flow)))
+   '(php-mode fzf counsel-fd fd-dired monokai-pro-theme link-hint link restart-emacs google-this nano-theme gitignore-snippets gitignore-templates helm-gitignore string-inflection inf-ruby ivy emojify counsel markdown-preview-mode sudo-edit dirvish which-key auctex protobuf-mode thrift scala-mode package ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack alert el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text dumb-jump robe yaml-mode web-mode use-package prettier-js magit)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -752,7 +922,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 ;; Lint in python
 (load "~/.emacs.d/flycheck-pycodestyle.el")
-(add-hook 'python-mode-hook 'flycheck-mode)
+(add-hook 'python-mode-hook (lambda () (flycheck-mode 1)))
 
 ;; Python docstrings fill-paragraph conforms to community convention
 (add-hook 'python-mode-hook 'python-docstring-mode)
@@ -772,11 +942,35 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   (interactive)
   (astro "ai"))
 
+(defun local ()
+  (interactive)
+  (astro "local"))
+
+(defun dev ()
+  (interactive)
+  (astro "dev"))
+
+(defun dev-classic ()
+  (interactive)
+  (astro "dev-classic"))
+
+(defun dev-python ()
+  (interactive)
+  (astro "dev-python"))
+
+(defun dev-classic-python ()
+  (interactive)
+  (astro "dev-classic-python"))
+
 (defun astro (cmd)
   (interactive "sCmd (ts/ai) (try_spacy/astroparser_interactive): ")
   ;; Wish I knew how to start buffer with `astro` bash cmd.  That
   ;; would go here.
   (shell (concat "*" cmd "*")))
+
+(defun kill-process-without-killing-buffer ()
+  (interactive)
+  (delete-process (get-buffer-process (current-buffer))))
 
 (add-to-list 'auto-mode-alist '("\\.apm\\'" . ruby-mode))
 
@@ -814,8 +1008,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 ;; Turn off auto backups (file~) over tramp because it leads to
 ;; frequent "save failed" errors.
-(add-to-list 'backup-directory-alist
-             (cons tramp-file-name-regexp nil))
+;; This should be better if you use ControlMaster
+;; (add-to-list 'backup-directory-alist
+;;              (cons tramp-file-name-regexp nil))
 
 ;; Speed up Tramp (https://emacs.stackexchange.com/a/37855)
 (setq remote-file-name-inhibit-cache nil)
@@ -826,7 +1021,12 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq tramp-verbose 1)
 ;; Other Tramp perf optimizations (git:michaelsilver/emacs-config)
 (setq tramp-completion-reread-directory-timeout nil)
-(customize-set-variable 'tramp-use-ssh-controlmaster-options nil)
+;; (customize-set-variable 'tramp-use-ssh-controlmaster-options nil)
+
+;; https://github.com/syl20bnr/spacemacs/issues/11381
+(defadvice projectile-project-root (around ignore-remote first activate)
+  (unless (file-remote-p default-directory) ad-do-it))
+
 
 ;; Open dired buffer for home directory on my favorite computers
 (defun nav ()
@@ -847,9 +1047,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (defun mani ()
   (interactive)
   (infolab-ssh "manitoulin"))
-(defun dev ()
-  (interactive)
-  (infolab-ssh "devon"))
+;; (defun dev ()
+;;   (interactive)
+;;   (infolab-ssh "devon"))
 (defun sno ()
   (interactive)
   (ssh "henryhu" "snowflake.myddns.me" "~"))
@@ -883,10 +1083,61 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (defun ssh (user host dir)
   (interactive "sUser: \nsFull Hostname: \nsDirectory: ")
-  (dired (concat "/ssh:" user "@" host ":" dir))
-  ;; Flycheck causes saves to freeze in Tramp
-  ;; (https://github.com/flycheck/flycheck/issues/54)
-  (add-hook 'python-mode-hook (lambda (flycheck-mode 0))))
+  (dired (concat "/ssh:" user "@" host ":" dir)))
+
+;; (defvar remote-buffer-theme 'monokai-pro-ristretto)
+;; (defvar local-buffer-theme 'zenburn)
+;; (defun remote-buffer-switch-theme ()
+;;   (if (not (window-minibuffer-p))
+;;       (if (file-remote-p default-directory)
+;;           (enable-theme remote-buffer-theme)
+;;         (enable-theme local-buffer-theme))))
+(defun remote-buffer-turn-off-slow-modes ()
+  (interactive)
+  (if (not (window-minibuffer-p))
+      (if (file-remote-p default-directory)
+          (progn
+            ;; Flycheck causes saves to freeze in Tramp
+            ;; (https://github.com/flycheck/flycheck/issues/54)
+            (flycheck-mode 0)
+            ;; Company mode blocks autocomplete in tramp over slow ssh
+            ;; (company-mode 0)
+            ))))
+;; (add-hook 'change-major-mode-hook 'remote-buffer-turn-off-slow-modes)
+(define-key my/keys-keymap (kbd "H-r") 'remote-buffer-turn-off-slow-modes)
+
+;; To use dtach instead of screen/tmux:
+;; In remote M-x shell:
+;; $ sudo apt-get install dtach
+;; $ echo dh='[dtach -c /tmp/mydetach
+;; Use TRAMP and to detach
+
+;; Limit output to avoid emacs lagging behind rambling processes and
+;; freezing before being able to kill the buffer.  ex. try running `yes`.
+(defun my-comint-stfu-toss (x) "")
+(defun my-comint-stfu ()
+  "Start (or stop) tossing comint output."
+  (interactive)
+  (if (and (boundp 'comint-preoutput-filter-functions)
+	   (member 'my-comint-stfu-toss comint-preoutput-filter-functions))
+      (progn
+        (alert "continue comint")
+        (setq comint-preoutput-filter-functions
+	      (remove 'my-comint-stfu-toss comint-preoutput-filter-functions)))
+    (progn
+      (alert "stfu comint")
+      (add-to-list 'comint-preoutput-filter-functions
+		   'my-comint-stfu-toss))))
+(define-key my/keys-keymap (kbd "C-c k") 'my-comint-stfu)
+;; Another method.  it truncates from the top which isn't great for
+;; long-running sessions but still protects against hanging buffer.
+;; (setq comint-buffer-maximum-size 10000)
+;; (add-to-list 'comint-output-filter-functions 'comint-truncate-buffer)
+
+;; Try to make it faster not scrolling.
+(setq comint-scroll-show-maximum-output 'nil)
+;; Try to make it faster disable undo.
+(add-hook 'shell-mode-hook 'buffer-disable-undo)
 
 ;; End tramp configuration
 
@@ -898,7 +1149,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (add-to-list 'tramp-methods
              `("ssh"
                (tramp-login-program        "gironde")
-               (tramp-login-args           (("ssh") ("%h") ("-l" "%u") ("-p" "%p") ("%c")
+               (tramp-login-args           (("ssh") ("%h") ("-l" "%u") ("-A") ("-p" "%p") ("%c")
 				            ("-e" "none")))
                (tramp-async-args           ())
                (tramp-direct-async         t)
@@ -925,8 +1176,18 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (defun pin ()
   (interactive)
   (ssh "hhu" "devrestricted-hhu-1.ec2.pin220.com" "~"))
-(setq dumb-jump-default-project "~/code/pinboard")
-(setq dumb-jump-force-searcher 'rg)
+(defun pin-classic ()
+  (interactive)
+  (ssh "hhu" "dev-hhu.ec2.pin220.com" "~"))
+
+(fset 'make-ssh-controlmaster-buffer
+   (kmacro-lambda-form [?\M-x ?s ?h ?e ?l ?l return ?c ?d return ?d ?v return ?\M-x ?r ?e ?n ?  ?b return ?* ?s ?s ?h ?- ?c ?o ?n ?t ?r ?o ?l ?m ?a ?s ?t ?e ?r ?- ?* return ?\C-x ?b ?\C-n return] 0 "%d"))
+
+;; source hologram use engineer
+(fset 'ho
+   (kmacro-lambda-form [?\M-> ?\M-> ?s ?o ?u ?r ?c ?e ?  ?h ?o ?l ?o ?g ?r ?a ?m ?  ?u ?s ?e ?  ?e ?n ?g ?i ?n ?e ?e ?r return] 0 "%d"))
+(fset 'dk
+   (kmacro-lambda-form [?\M-> ?d ?k return ?s ?o ?u ?r ?c ?e ?  ?. ?b ?a ?s ?h ?r ?c return] 0 "%d"))
 
 ;; End Pinterest configuration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -962,5 +1223,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 ;; Fira Code ligatures for forall, etc
 ;; https://github.com/tonsky/FiraCode/issues/211#issuecomment-239058632
-
+(defun open-external-terminal (file)
+  (interactive (list (read-string "Terminal in folder: " default-directory)))
+  (shell-command (format "open -a /System/Applications/Utilities/Terminal.app file://%s" file)))
+(define-key my/keys-keymap (kbd "C-H-t") 'open-external-terminal)
+(define-key my/keys-keymap (kbd "H-t") 'shell)
 ;; End MacOS specific configuration
