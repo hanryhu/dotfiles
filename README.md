@@ -4,6 +4,7 @@
 These are my Dotfiles.
 
 - `slushy` is a Ubuntu (14?) dual-boot machine.
+- `wainux` is my Ubuntu 20 dual-boot machine.
 - `snowflake` is my Macbook Pro
 - `csail` are the Linux boxes of the Infolab group at
 [CSAIL](https://groups.csail.mit.edu/infolab/)

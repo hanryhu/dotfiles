@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 ######## TERMINAL CONFIG
 #BEGIN better autocomplete for sudo
 complete -cf sudo
@@ -108,12 +107,6 @@ alias rb="irb --simple-prompt"
 #BEGIN lsl
 alias lsl='find . -ls -name "*~" -prune'
 #END lsl
-#BEGIN start minecraft server
-alias mc-start='exec java -Xms1G -Xmx1G -jar server.jar nogui;'
-#END start minecraft server
-#BEGIN start google chrome
-alias chrome='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
-#END start google chrome
 #BEGIN whoami aliases
 alias whoami-test='nosetests -v ~/whoami/tests && whoami-lint'
 alias whoami-lint='pycodestyle ~/whoami/whoami ~/whoami/tests ~/whoami/scripts --ignore=E501,W504'
@@ -175,14 +168,11 @@ function astro2 () {
     workon astro2 && rmvirtualenv astro && cpvirtualenv astro2 astro && astro
 }
 #END whoami aliases
-#BEGIN fix muted audio macOSX
-alias fix-audio="sudo killall coreaudiod"
-#END fix muted audio maxOSX
-
 ########### GIT TOOLS
 #BEGIN git auto-complete (https://apple.stackexchange.com/questions/55875/git-auto-complete-for-branches-at-the-command-line)
 test -f ~/.git-completion.bash && . "$_"
 #END git auto-complete
+alias q="echo 'nothing to quit :)'"
 #BEGIN use emacs to open all affected files in a git diff
 ediff () {
     emacs "$(git diff --name-only $@ | paste -sd " " -)"
@@ -231,8 +221,10 @@ alias git-ignore-deleted="git ls-files --deleted -z | git update-index --assume-
 alias git-unignore="git update-index --no-assume-unchanged --stdin"
 alias git-see-ignored="git ls-files -v | grep \"^[a-z]\" | sed 's/^[a-z] \(.*$\)/\1/'"
 #END git aliases
-
-#### ACCESSING REMOTE FILE SYSTEMS
+#BEGIN pbcopy for linux
+alias pbcopy='xclip -selection clipboard'
+alias pbpaste='xclip -selection clipboard -o'
+#END pbcopy for linux
 #BEGIN snowflake scp
 function sf-scp () {
     if [[ -z $2 ]] ; then
@@ -287,87 +279,14 @@ function athena() {
 alias a=athena
 #END Shortcut for athena
 
-#  Setting PATH for Python 3.6
-# The original version is saved in .bash_profile.pysave
-PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
-export PATH
-
-# Use GNU Grep
-export PATH="/usr/local/opt/grep/libexec/gnubin:$PATH"
-
-PATH="/Applications/Julia-1.1.app/Contents/Resources/julia/bin:${PATH}"
-export PATH
-
-#curl -s -L http://bit.ly/10hA8iC | bash
-#alias emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
-
-# Python virtualenvs
-export WORKON_HOME=~/.virtualenvs
-export VIRTUALENVWRAPPER_PYTHON=/opt/anaconda3/bin/python3.8;
-[ -f /opt/anaconda3/bin/virtualenvwrapper.sh ] && source /opt/anaconda3/bin/virtualenvwrapper.sh
-export MACOSX_DEPLOYMENT_TARGET=11.4
-# END Python virtualenvs
-
 # Working directory shortcut
 source ~/.wd-history
 # End working directory shortcut
 
-# Node virtual environments
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-# END Node virtual environments
+##########################################################################
+# Begin more complex functions and examples                              #
+##########################################################################
 
-# swap two files
-function swap()
-{
-    local TMPFILE=tmp.$$
-    mv "$1" $TMPFILE && mv "$2" "$1" && mv $TMPFILE "$2"
-}
-function swap-swap()
-{
-    local TMPFILE=tmp.$$
-    mv-mv "$1" $TMPFILE && mv-mv "$2" "$1" && mv-mv $TMPFILE "$2"
-}
-alias sw=swap
-alias sw-sw=swap-swap
-# END swap two files
-
-function zoomcrop () {
-    echo "Usage: zoomcrop IN OUT"
-    ffmpeg -i "$1" -filter:v "crop=2075:1181:0:116" "$2" # crop=w:h:x:y
-}
-
-function rm-audio {
-    ffmpeg -i "$1" -c copy -an "$1-nosound.${1#*.}"
-}
-
-function epic-games-non-crash {
-    open /Applications/Epic\ Games\ Launcher.app --args -ForceMacOldHttpImpl
-}
-
-function vnc-tunnel {
-    # How to connect to malta via VNC:
-    # vnc-tunnel;
-    # open VNCViewer and go to Localhost:5901
-    ssh start@malta.csail.mit.edu -L 5901:localhost:5901;
-    # Alternatively:
-    # ssh -Y wallis.csail.mit.edu;
-    # wallis:~$ vnc
-}
-
-function fix-webcam {
-    pushd ~/node-uvc-control || return
-    node ./examples/server.js > /dev/null 2>&1 &
-    sleep 0.5 # wait for node to start the server
-    # Don't use https, or else SSL protocol error
-    chrome "http://localhost:3000/" > /dev/null 2>&1 &
-    read -r -p "Press enter to kill all node jobs in this terminal session"
-    echo "Good bye!"
-    echo "------------"
-    kill "$(jobs -p node)"
-    popd || return
-}
 
 function for-loop-example {
     # field separator
@@ -376,11 +295,6 @@ function for-loop-example {
     do
         ffmpeg -i "$i" "$i.mp3"
     done
-}
-
-function start-ddclient {
-    # emacs /usr/local/etc/ddclient/ddclient.conf
-    sudo /usr/local/opt/ddclient/sbin/ddclient -verbose -noquiet
 }
 
 function print-betty () {
@@ -452,13 +366,46 @@ function fix-emacs () {
     # Immediately do M-x toggle-debug-on-quit
 }
 
-function wordle () {
-    pushd ~/Downloads || return
-    workon astro
-    python -i wordle.py
-}
-
+##########################################################################
+# Git stack (see create-and-push-pr-stack.sh)                            #
+##########################################################################
 alias stack-branch="git commit --allow-empty -m"
 alias stack-restack="git fetch origin master; git rebase -i origin/master"
 alias stack-push-f="yes | ~/stripe/zoolander/create-and-push-pr-stack.sh"
 
+##########################################################################
+# Python path setup                                                      #
+##########################################################################
+export WORKON_HOME=/home/henryhu/.venv/.virtualenvs
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python
+source /home/henryhu/.local/bin/virtualenvwrapper.sh
+
+# For example, contains pycodestyle
+export PATH="$PATH:$HOME/.local/bin"
+
+# For some reason, this has recently been `cat`.  That's bad for `git log`, for example.
+export PAGER=less
+
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
