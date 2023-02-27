@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # 
 
+GITHUB_ROOT="https://github.com/pinternal"
+REPO="pinboard"
+
 # Suggested aliases:
 # alias stack-branch=git commit --allow-empty -m
 # alias stack-restack=git fetch origin master; git rebase -i origin/master
@@ -13,7 +16,7 @@ Looks for empty commits since origin/master and uses them to
 create/update stacked branches at origin automatically.
 
 You can use this by doing what
-https://confluence.corp.stripe.com/display/PRODINFRA/Stacked+PR+Workflow
+<redacted>
 says, except create empty commits using 'git commit --allow-empty -m
 "[stack-name] [n/N] description"' to mark boundaries between your
 desired stacked PRs.  This allows you to automatically rebase and
@@ -81,13 +84,13 @@ processShaAsBranch () {
     # Push local branch to remote branch
     push_output="$(git push --no-progress --force-with-lease origin "$branch":"$branch" 2>&1)"
     if [[ "$push_output" =~ "Everything up-to-date" ]]; then
-        echo "Already up-to-date. PR: https://git.corp.stripe.com/stripe-internal/zoolander/pull/${branch}"
+        echo "Already up-to-date. PR: ${GITHUB_ROOT}/${REPO}/pull/${branch}"
     elif [[ "$push_output" =~ "pull request by visiting" ]]; then
         # Nicely, when the branch is new, git gives us this message from remote even with --quiet.
         echo "$push_output"
     else
         echo "$push_output"
-        echo "PR: https://git.corp.stripe.com/stripe-internal/zoolander/pull/${branch}"
+        echo "PR: ${GITHUB_ROOT}/${REPO}/pull/${branch}"
     fi
 }
 
