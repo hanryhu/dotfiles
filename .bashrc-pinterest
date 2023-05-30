@@ -125,7 +125,7 @@ export GROUP_ID=$(id -g $USER)
 export HOME=$(readlink -f ~)
 export GOPATH=$HOME/code/magnus
 export GOROOT=$HOME/go/
-export PATH=$HOME/code/magnus/scripts/bin18:$HOME/code/magnus/bin:$PATH
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 export PATH=/home/hhu/.local/bin:$PATH
 
 # BEGIN explicitly set less pager
@@ -139,9 +139,9 @@ export DIFF_REVIEW_PREFIX="henryhu-diff-review-"
 function gs ()
 {
     # Show branches with diff review prefixes and also excluding backup branches
-    git branch | sed "s/$DIFF_REVIEW_PREFIX\(.*\)/\1 \t\t($DIFF_REVIEW_PREFIX\1)/" | sed 's/\(\s*\).*-backup)$/\1\t... (backup)/'
+    git branch | sed "s/$DIFF_REVIEW_PREFIX\(.*\)/\1 \t\t($DIFF_REVIEW_PREFIX\1)/" | sed 's/\(\s*\).*-backup)$//' | tr '\n' '\f' | sed 's/\f\+/\f/g' | tr '\f' '\n'
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-    git status
+    git status --column=row "$@"
 }
 # alias gs='git status'
 function git-log-title-body-only () {
@@ -164,8 +164,13 @@ alias gcp='git cherry-pick'
 # Begin git pull origin master alias
 function gpom ()
 {
-    echo 'git pull origin master;'
+    echo "git pull origin master;"
     git pull origin master;
+}
+function gpo ()
+{
+    echo "git push origin $@;"
+    git push origin "$@";
 }
 function gfom ()
 {
@@ -414,3 +419,24 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 alias q="echo 'nothing to quit :)'"
+
+alias stack-branch="git commit --allow-empty -m"
+alias stack-restack="git fetch origin master; git rebase -i origin/master"
+alias stack-push-f="yes | ~/code/pinboard/create-and-push-pr-stack.sh"
+
+function aws-jq () {
+    echo "aws s3 cp $1 /tmp/aws_jq.json"
+    aws s3 cp "$1" /tmp/aws_jq.json
+    jq . /tmp/aws_jq.json
+}
+
+function aws-du () {
+    echo "rm -rf /tmp/aws-du"
+    rm -rf /tmp/aws-du
+    echo "aws s3 cp --recursive $1 /tmp/aws-du"
+    aws s3 cp --recursive "$1" /tmp/aws-du
+    du -h /tmp/aws-du
+}
+# For mnt/pinboard:
+# export PS1="\h:\w# "
+# alias gs='echo "We do not have git in here, sorry :("'
