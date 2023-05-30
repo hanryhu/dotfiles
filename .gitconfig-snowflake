@@ -10,15 +10,20 @@
 	helper = osxkeychain
 [core]
 	editor = emacs
+	pager = less
 	excludesfile = /Users/henryhu/.gitignore
 [alias]
 	lol = log --graph --oneline --decorate --color --all
+        brnach = branch
 	s = status
 	# The final ; inside the function is necessary.
 	rapply = "!f() { git stash apply stash^{/$1}; }; f"
+        add-unmerged = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; git add `f`"
+        resolve = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; git add `f`"
 [merge]
 	conflictstyle = diff3
 	renameLimit = 999999
+        autostash = true
 [diff]
 	colorMoved = dimmed-zebra
         colorMovedWS = allow-indentation-change
@@ -29,3 +34,7 @@
 	templatedir = /Users/henryhu/.git-templates
 [rebase]
         allowEmpty = true
+        autostash = true
+[fetch]
+        # auto delete branches that were deleted upstream?
+        prune = true
