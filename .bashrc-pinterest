@@ -182,6 +182,7 @@ function gfom ()
 # alias go='git checkout'
 alias gb='git branch'
 alias gob='git checkout -b'
+alias gcm='git commit -m'
 # end git checkout alias
 # better which
 alias which=type
@@ -235,7 +236,7 @@ function dock () {
 alias dk=dock
 
 function ad () {
-    echo "~~~ welcome to arc diff wrapper! ~~~"
+    echo "~~~ welcome to arc diff wrapper for git! ~~~"
     if [[ "$1" = D* ]]; then
         echo "usage: ad branch_name"
         echo "your branch name starts with D.  I recommend you use 'au $1'"
@@ -267,7 +268,9 @@ function ad () {
     # cmp -s ~/arc-diff-helpers/arc-diff-message ~/arc-diff-helpers/arc-diff-message.template && (echo "exiting as message equals template." && return 1)
     # Activate python venv for accurate lint. commented out bc repo-specific
     # source ~/code/pinboard/.venv/bin/activate || (echo "There is no venv.  Install according to https://w.pinadmin.com/display/ENG/Python+3+Developer+Environment" && return 1)
-    arc diff --message-file ~/arc-diff-helpers/arc-diff-message HEAD^
+    echo "git commit amend ; git push origin $branch_name"
+    git commit --amend -F ~/arc-diff-helpers/arc-diff-message
+    git push origin $branch_name
     # Branching has to happen after arc diff in case of lint amends.
     echo "naming HEAD as $branch_name and making backup"
     git branch -f --quiet "$branch_name"-backup "$branch_name"
@@ -277,36 +280,22 @@ function ad () {
 }
 
 function au () {
-    echo "~~~ welcome to arc diff update wrapper! ~~~"
-    if [[ "$1" != D* ]]; then
-        echo "usage: au diff_number branch_name"
-        echo "your diff number does not start with D.  Did you mean 'ad $@'?"
-        return 1
-    fi
-    if [[ -z "$2" ]]; then
-        echo "usage: au diff_number branch_name"
+    echo "~~~ welcome to arc diff update wrapper for git! ~~~"
+    if [[ -z "$1" ]]; then
+        echo "usage: au branch_name"
         echo "empty branch name is no longer supported."
         return 1
     fi
-    branch_name="$DIFF_REVIEW_PREFIX$2"
+    branch_name="$DIFF_REVIEW_PREFIX$1"
     echo "working changes include possibly untracked files and:"
     git diff --name-status -M -C HEAD | sed 's/^/      /' || echo '      (none)'
     echo "stashing working changes"
     git stash save --include-untracked --message="automated-$branch_name" --quiet
     echo "diff contents:"
-    git diff --name-status -M -C HEAD^ | sed 's/^/      /' || echo '      (none)'
-    echo "default: '"$(cat ~/arc-diff-helpers/arc-diff-update-message)"'"
-    message_prefix="Update diff $1:"
-    read -r -p "enter update message (C-c to cancel): $message_prefix "
-    cat ~/arc-diff-helpers/arc-diff-update-message >> ~/arc-diff-helpers/arc-diff-update-message.bak
-    if [[ -n $REPLY ]]; then
-        echo "$message_prefix $REPLY" > ~/arc-diff-helpers/arc-diff-update-message
-    fi
-    # Activate python venv for accurate lint. commented out bc repo-specific
-    # source ~/code/pinboard/.venv/bin/activate || (echo "There is no venv.  Install according to https://w.pinadmin.com/display/ENG/Python+3+Developer+Environment" && return 1)
-    final_message="$(cat ~/arc-diff-helpers/arc-diff-update-message)"
-    echo "Using message: $final_message"
-    arc diff --update "$1" --message "$final_message" HEAD^
+    git log origin/master..HEAD --oneline | head -n 10 | sed 's/^/      /' || echo '      (none)'
+    read -r -p "press enter to confirm push -f to $branch_name ... (C-c to cancel)"
+    echo "git push --force-with-lease origin $branch_name"
+    git push --force-with-lease origin $branch_name
     # Branching has to happen after arc diff in case of lint amends.
     echo "naming HEAD as $branch_name and making backup"
     git branch -f --quiet "$branch_name"-backup "$branch_name"
@@ -316,26 +305,7 @@ function au () {
 }
 
 function al () {
-    if [[ -z "$1" ]]; then
-        echo "usage: al branch_name"
-        echo "empty branch name is no longer supported."
-        return 1
-    fi
-    echo "~~~ welcome to arc land wrapper! ~~~"
-    branch_name="$DIFF_REVIEW_PREFIX$1"
-    echo "landing branch named $branch_name"
-    echo "working changes include possibly untracked files and:"
-    git diff --name-status -M -C HEAD | sed 's/^/      /' || echo '      (none)'
-    echo "stashing working changes"
-    git stash save --include-untracked --message="automated-$branch_name" --quiet
-    echo "changes to land include:"
-    git diff --name-status -M -C "$branch_name^" "$branch_name" | sed 's/^/      /'
-    read -r -p "press enter to confirm land ... (C-c to cancel)"
-    # Activate python venv for accurate lint. commented out bc repo-specific
-    # source ~/code/pinboard/.venv/bin/activate || (echo "There is no venv.  Install according to https://w.pinadmin.com/display/ENG/Python+3+Developer+Environment" && return 1)
-    arc land "$branch_name"
-    echo "popping stash"
-    git stash pop --quiet
+    echo "al isn't supported in github.  Did you mean \`ac $1\`?"
 }
 
 function ap () {
@@ -343,10 +313,7 @@ function ap () {
         echo "usage: ap D######"
         return 1
     fi
-    echo "arc patch $1"
-    echo "Applying patch..."
-    # Consider adding stash logic.
-    arc patch "$1"
+    echo "ap isn't supported in github.  Did you mean \`au $1\`?"
 }
 
 function ac () {
@@ -423,6 +390,7 @@ alias q="echo 'nothing to quit :)'"
 alias stack-branch="git commit --allow-empty -m"
 alias stack-restack="git fetch origin master; git rebase -i origin/master"
 alias stack-push-f="yes | ~/code/pinboard/create-and-push-pr-stack.sh"
+# TODO: stack-start
 
 function aws-jq () {
     echo "aws s3 cp $1 /tmp/aws_jq.json"
