@@ -378,6 +378,15 @@ function for-loop-example {
     done
 }
 
+function for-loop-example-2 {
+    # field separator
+    IFS=$(echo -en "\n\b")
+    for i in $(git status --untracked-files | fgrep parameters_ | grep -v rm_ssv0 | grep -v parameters_backfill | grep -v parameters_train | sed 's/^\t\+//')
+    do
+        mv "$i" parameters_train
+    done
+}
+
 function start-ddclient {
     # emacs /usr/local/etc/ddclient/ddclient.conf
     sudo /usr/local/opt/ddclient/sbin/ddclient -verbose -noquiet

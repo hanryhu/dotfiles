@@ -10,7 +10,7 @@
 	helper = osxkeychain
 [core]
 	editor = emacs
-	pager = less
+        pager = less
 	excludesfile = /Users/henryhu/.gitignore
 [alias]
 	lol = log --graph --oneline --decorate --color --all
@@ -35,6 +35,6 @@
 [rebase]
         allowEmpty = true
         autostash = true
-[fetch]
-        # auto delete branches that were deleted upstream?
-        prune = true
+# [fetch]
+# auto delete branches that were deleted upstream?
+# prune = true

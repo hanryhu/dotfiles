@@ -1,0 +1,11 @@
+# * PREFIX
+set   -g prefix C-z
+unbind C-b # unbind the default binding to send prefix key to the application
+# Often you'll run a tmux inside another tmux and need a command sequence to
+# send things to the inner session. With below binding that can be accomplished
+# using "PREFIX Z <command>"
+bind   Z send-prefix
+
+# * Source config
+unbind r # unbind default binding to force redraw of attached client
+bind   r source-file ~/.tmux.conf \; display "Finished sourcing ~/.tmux.conf ."
