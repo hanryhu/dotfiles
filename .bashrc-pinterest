@@ -164,18 +164,23 @@ alias gcp='git cherry-pick'
 # Begin git pull origin master alias
 function gpom ()
 {
-    echo "git pull origin master;"
-    git pull origin master;
+    echo "git pull origin master $@;"
+    git pull origin master "$@";
 }
 function gpo ()
 {
     echo "git push origin $@;"
     git push origin "$@";
 }
+function gpof ()
+{
+    echo "git push origin --force-with-lease $@;"
+    git push origin --force-with-lease "$@";
+}
 function gfom ()
 {
-    echo 'git fetch origin master;'
-    git fetch origin master;
+    echo "git fetch origin master $@;"
+    git fetch origin master "$@";
 }
 # end git pull origin master alias
 # Begin git checkout alias
