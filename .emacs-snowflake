@@ -54,6 +54,7 @@
             'filladapt
             'ivy
             'inf-ruby
+            'json-mode
             'link-hint
 	    'magit
             'markdown-mode              ; for markdown-follow-thing-at-point
@@ -61,13 +62,16 @@
 	    'move-text       
 	    'prettier-js
             'python-docstring
+            'request                    ; for chatgpt-arcana.el
 	    'rg
 	    'string-inflection
 	    'scheme-complete
             'sudo-edit                  ; for M-x sudo
             'tree-sitter                ; Depends Emacs 25.1 < Emacs 29 (because it's in master)
             'tree-sitter-langs          ; Depends Emacs 25.1 < Emacs 29 (because it's in master)
+            'undo-fu-session
 	    'use-package     
+            'vundo
 	    'web-mode        
 	    'yaml-mode))
 (mapcar #'package-install henryhu-packages)
@@ -308,6 +312,26 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq company-dabbrev-downcase nil)     ; why did I comment this out?
 ;; company is very frustratingly hangy for ssh tramp.
 ;; (company-mode 0)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Undo behavior                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setq undo-limit 67108864) ; 64mb.
+(setq undo-strong-limit 100663296) ; 96mb.
+(setq undo-outer-limit 1006632960) ; 960mb.
+
+;; (use-package undo-fu)
+;; undo-fu-allow-undo-in-region (nil)
+(use-package vundo)
+(setq vundo-glyph-alist vundo-unicode-symbols) ; Use pretty symbols.
+(setq vundo-roll-back-on-quit nil)      ; C-g or q will commit changes instead of RET.
+
+;; Note: INCOMPATIBLE with undo-tree.
+(undo-fu-session-global-mode)
+(setq undo-fu-session-incompatible-files '("/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'"))
+(setq undo-fu-session-file-limit 10000)
+(setq undo-fu-session-incompatible-major-modes '(shell-mode))
+
 
 ;; End Global config settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -815,6 +839,21 @@ It can also be nil, which means the first value in `recenter-positions'.")
 (define-key my/keys-keymap (kbd "M-$") #'shell)
 (define-key my/keys-keymap (kbd "M-*") #'shell)
 
+(defun rename-all-buffers-to-devrestricted (interactive)
+  (mapcar
+   (lambda (buffer)
+     (with-current-buffer
+         buffer
+       (if (and (buffer-file-name buffer)
+                (string-match-p "@dev:" (buffer-file-name buffer)))
+           (set-visited-file-name
+            (string-replace
+             "@dev:"
+             "@devrestricted:"
+             (buffer-file-name buffer))
+            't))))
+   (buffer-list)))
+
 ;;; In minibuffer and isearch use shift+enter for quoted return
 ;;; https://stackoverflow.com/questions/19757612/how-to-redefine-a-key-inside-a-minibuffer-mode-map
 ;;; Never worked
@@ -844,6 +883,7 @@ It can also be nil, which means the first value in `recenter-positions'.")
 ;; Eval-region similar to eval-sexp (overwriting find-file-read-only)
 (define-key my/keys-keymap (kbd "C-x C-r") 'eval-region)
 
+(magit-auto-revert-mode 0) ; for some reason cannot insert-kbd-macro without this (with-editor related?)
 ;; Write a commit message in emacs.  To exit, do C-c C-c.  Plays well
 ;; with Tramp.
 (define-key my/keys-keymap (kbd "C-c c") 'magit-commit-create)
@@ -951,6 +991,8 @@ It can also be nil, which means the first value in `recenter-positions'.")
 (use-package link-hint
   :ensure t
   :bind
+  ;; Tip: for error in shell "There is no link supporting the :open
+  ;; action at point", make sure to command dirs (M-enter) first.
   ("H-o" . link-hint-open-link-at-point)
   ("H-i" . link-hint-copy-link))
 ;; ...follow-thing... doesn't work in elisp comments
@@ -1033,7 +1075,7 @@ It can also be nil, which means the first value in `recenter-positions'.")
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   '(json-mode transpose-frame go-mode alert rainbow-delimiters tree-sitter-langs tree-sitter company-flow php-mode fzf counsel-fd fd-dired monokai-pro-theme link-hint link restart-emacs google-this nano-theme gitignore-snippets gitignore-templates helm-gitignore string-inflection inf-ruby ivy emojify counsel markdown-preview-mode sudo-edit dirvish which-key auctex protobuf-mode thrift scala-mode package ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text dumb-jump robe yaml-mode web-mode use-package prettier-js magit)))
+   '(vundo undo-fu-session json-mode transpose-frame go-mode alert rainbow-delimiters tree-sitter-langs tree-sitter company-flow php-mode fzf counsel-fd fd-dired monokai-pro-theme link-hint link restart-emacs google-this nano-theme gitignore-snippets gitignore-templates helm-gitignore string-inflection inf-ruby ivy emojify counsel markdown-preview-mode sudo-edit dirvish which-key auctex protobuf-mode thrift scala-mode package ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text dumb-jump robe yaml-mode web-mode use-package prettier-js magit)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -1130,8 +1172,10 @@ It can also be nil, which means the first value in `recenter-positions'.")
                                         (not (member "schemas" package-pieces))
                                         (not (member "ml" package-pieces))
                                         (-find-index (lambda (x) (string-equal x "machine-learning")) split-slashes)))
+               (dags-index (-find-index (lambda (x) (string-equal x "dags")) split-slashes)) ; for spinner-workflows
                (code-index
                 (or (and machine-learning-index (- machine-learning-index 1))
+                    (and dags-index (- dags-index 1))
                     (-find-index (lambda (x) (string-equal x "code")) split-slashes)
                     (- (-find-index (lambda (x)
                                       (string-equal
@@ -1191,13 +1235,121 @@ It can also be nil, which means the first value in `recenter-positions'.")
         ;; Then go forward to symbol
         ?\C-s return ?\C-y return
         ;; Pop point from register and exchange mark with point.
-        ?\C-x ?r ?j ?r ?\C-x ?\C-x ?\C-\H-g
+        ?\C-x ?r ?j ?r ?\C-x ?\C-x ;?\C-\H-g
         ]
        0 "%d"))
 (define-key my/keys-keymap (kbd "M-. M-.") 'dumb-goto-python-symbol-at-point-in-import-file)
 (define-key my/keys-keymap (kbd "M-. M-,") 'dumb-goto-python-symbol-at-point-in-this-file)
 
 ;; End Python settings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Java settings                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun show-java-package ()
+  "Show the full java package name in the minibuffer and kill it."
+  (interactive)
+  (let* ((filename (buffer-file-name))
+         (slash-regexp "/\\|\\\\")
+         (split-slashes (split-string filename slash-regexp))
+         (java-index
+          (-find-index (lambda (x) (string-equal x "java")) split-slashes))
+         ;; Assume all java packages are in xxx/src/main/java/com/pinterest/xxx directory
+         (package-root-index (+ 1 java-index))
+         (package-pieces (-drop package-root-index split-slashes))
+         (package-name-with-java (string-join package-pieces "."))
+         (package-name (string-trim-right package-name-with-java "\\.java")))
+    (kill-new package-name)
+    (message package-name)))
+(defalias 'jwd 'show-java-package)
+
+(defun goto-java-filepath ()
+  "Inverse of show-java-package.  After highlighting java package in region, go to the file of that package."
+  (interactive)
+  (let ((region-string (if (region-active-p)
+                           (buffer-substring-no-properties
+                            (region-beginning)
+                            (region-end))
+                         (progn (message "goto-java-filepath cannot auto-determine region for java packages.  please mark a region.") nil))))
+    (if region-string
+        (let* ((filename (buffer-file-name))
+               (slash-regexp "/\\|\\\\")
+               (split-slashes (split-string filename slash-regexp))
+               (package-pieces (split-string region-string "\\."))
+               (optimus-index (-find-index (lambda (x) (string-equal x "optimus")) split-slashes))
+               (java-index (-find-index (lambda (x) (string-equal x "java")) split-slashes))
+               ;; Assume all java packages are in optimus/<xxx>/src/main/java/com/pinterest/<xxx> directory.
+               ;; optimus/xxx is the project root.
+               ;; java/com is the package root.
+               (project-root-index (+ 1 optimus-index))
+               ;; /ssh:@/.../optimus/
+               (before-project-pieces (-take project-root-index split-slashes))
+               (package-root-index (+ 1 java-index))
+               ;; src/main/java/com/.../*.java
+               (before-package-pieces (reverse
+                                       (-take
+                                        ;; Cut <xxx>
+                                        (- package-root-index project-root-index 1)
+                                        (reverse
+                                         (-take package-root-index split-slashes)))))
+               ;; '(com pinterest <xxx> ...)
+               (package-root-name (third package-pieces))
+               (before-package-path (string-join (append before-project-pieces (list package-root-name) before-package-pieces) "/"))
+               (package-path-without-java (string-join package-pieces "/"))
+               (full-package-path (concat before-package-path "/" package-path-without-java ".java")))
+          (kill-new full-package-path)
+          (message full-package-path)
+          (find-file full-package-path)))))
+(defalias 'gjf 'goto-java-filepath)
+(define-key my/keys-keymap (kbd "M-g M-j") 'goto-java-filepath)
+
+(fset 'dumb-goto-java-symbol-at-point-in-import-file
+      (kmacro-lambda-form
+       [
+        ;; Save point to register
+        ?\C-x ?r ?  ?r
+        ;; kill symbol at point
+        ?\M-: ?\( ?k ?i ?l ?l ?- ?n ?e ?w ?  ?\( ?t ?h ?i ?n ?g ?- ?a ?t ?- ?p ?o ?i ?n ?t ?  ?\' ?s ?y ?m ?b ?o ?l ?\) ?\) return
+        ;; Find import/import static line
+        ?\M-< ?\C-\M-S return ?\\ ?\(?i ?m ?p ?o ?r ?t ?  ?. ?* ?\\ ?| ?i ?m ?p ?o ?r ?t ?  ?s ?t ?a ?t ?i ?c ?  ?. ?* ?\\ ?\) ?\C-y return
+        ;; Mark and kill file location
+        ;; ?\C-\M-b ?\C-b
+        ?\C-  ?\C-r ?  return ?\C-f
+        ?\M-g ?\M-j
+        ;; Search for class/public TYPE/protected TYPE <symbol>...
+        ?\M-< ?\C-\M-S return ?\\ ?\( ?\\ ?\( ?c ?l ?a ?s ?s ?\\ ?| ?p ?u ?b ?l ?i ?c ?. ?* ?\\ ?| ?p ?r ?i ?v ?a ?t ?e ?. ?* ?\\ ?| ?p ?r ?o ?t ?e ?c ?t ?e ?d ?. ?* ?\\ ?\) ?  ?\C-y ?\M-y ?\\ ?\( ?\( ?\\ ?| ?  ?e ?x ?t ?e ?n ?d ?s ?\\ ?| ? ?{  ?\\ ?\)
+        ;; ...or <symbol> =
+        ?\\ ?| ?\C-y ?  ?= ?\\ ?\) return
+        ;; Then go backward to symbol
+        ?\C-r return ?\C-y return
+        ;; Message about register
+        ?\M-: ?\( ?m ?e ?s ?s ?a ?g ?e ?  ?\" ?T ?o ?  ?g ?o ?  ?b ?a ?c ?k ?, ?  ?u ?s ?e ?  ?C ?- ?x ?  ?r ?  ?j ?  ?r ?\" ?\)
+        ]
+       0 "%d"))
+(fset 'dumb-goto-java-symbol-at-point-in-this-file
+      (kmacro-lambda-form
+       [
+        ;; Save point to register
+        ?\C-x ?r ?  ?r
+        ;; kill symbol at point
+        ?\M-: ?\( ?k ?i ?l ?l ?- ?n ?e ?w ?  ?\( ?t ?h ?i ?n ?g ?- ?a ?t ?- ?p ?o ?i ?n ?t ?  ?\' ?s ?y ?m ?b ?o ?l ?\) ?\) return
+        ;; Search backward for class/public TYPE/private TYPE/protected TYPE <symbol>...
+        ?\M-> ?\C-\M-r return ?\\ ?\( ?\\ ?\( ?c ?l ?a ?s ?s ?\\ ?| ?p ?u ?b ?l ?i ?c ?. ?* ?\\ ?| ?p ?r ?i ?v ?a ?t ?e ?. ?* ?\\ ?| ?p ?r ?o ?t ?e ?c ?t ?e ?d ?. ?* ?\\ ?\) ?  ?\C-y ;; ?\M-y
+        ?\\ ?\( ?\( ?\\ ?| ?  ?e ?x ?t ?e ?n ?d ?s ?\\ ?| ? ?{  ?\\ ?\)
+        ;; ...or <symbol> =
+        ?\\ ?| ?\C-y ?  ?= ?\\ ?|
+        ;; ...or import/import static <symbol>.
+        ?i ?m ?p ?o ?r ?t ?  ?. ?* ?\C-y ?\\ ?| ?i ?m ?p ?o ?r ?t ?  ?s ?t ?a ?t ?i ?c ?  ?. ?* ?\C-y ?\\ ?\) return
+        ;; Then go forward to symbol
+        ?\C-s return ?\C-y return
+        ;; Pop point from register and exchange mark with point.
+        ?\C-x ?r ?j ?r ?\C-x ?\C-x ;?\C-\H-g
+        ]
+       0 "%d"))
+(define-key my/keys-keymap (kbd "M-. M-j M-.") 'dumb-goto-java-symbol-at-point-in-import-file)
+(define-key my/keys-keymap (kbd "M-. M-j M-,") 'dumb-goto-java-symbol-at-point-in-this-file)
+
+;;End Java settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Scheme settings                                                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1227,7 +1379,10 @@ It can also be nil, which means the first value in `recenter-positions'.")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON settings                                                          ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-key json-mode-map (kbd "C-c C-j") 'json-pretty-print-buffer)
+(use-package json-mode
+  :config
+  (define-key json-mode-map (kbd "C-c C-j") 'json-pretty-print-buffer)
+  )
 ;; End JSON settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other mode settings                                                    ;;
@@ -1254,6 +1409,14 @@ It can also be nil, which means the first value in `recenter-positions'.")
   (interactive)
   (astro "dev"))
 
+(defun admixer ()
+  (interactive)
+  (astro "admixer"))
+
+(defun adsdebug ()
+  (interactive)
+  (astro "adsdebug"))
+
 (defun dev-git ()
   (interactive)
   (astro "dev-git"))
@@ -1273,6 +1436,10 @@ It can also be nil, which means the first value in `recenter-positions'.")
 (defun dev-classic-python ()
   (interactive)
   (astro "dev-classic-python"))
+
+(defun spinner ()
+  (interactive)
+  (astro "spinner"))
 
 (defun astro (cmd)
   (interactive "sCmd (ts/ai) (try_spacy/astroparser_interactive): ")
@@ -1469,7 +1636,7 @@ It can also be nil, which means the first value in `recenter-positions'.")
   (ssh "hhu" "devrestricted" "~"))
 (defun pin-classic ()
   (interactive)
-  (ssh "hhu" "dev" "~"))
+  (ssh "hhu" "devrestricted-hhu-1" "~"))
 
 (fset 'make-ssh-controlmaster-buffer
    (kmacro-lambda-form [?\M-x ?s ?h ?e ?l ?l return ?c ?d return ?d ?v return ?\M-x ?r ?e ?n ?  ?b return ?* ?s ?s ?h ?- ?c ?o ?n ?t ?r ?o ?l ?m ?a ?s ?t ?e ?r ?- ?* return ?\C-x ?b ?\C-n return] 0 "%d"))
@@ -1485,6 +1652,8 @@ It can also be nil, which means the first value in `recenter-positions'.")
 (setq chatgpt-arcana-api-key (auth-source-pick-first-password
                               :host "openai.pinadmin.com"))
 
+(fset 'convert-jupyter-param-to-python
+   (kmacro-lambda-form [?\C-a ?\C-s ?	 ?\C-b ?\C-d ?  ?= ?  ?\' ?\C-e ?\' ?\C-n ?\C-a] 0 "%d"))
 
 ;; End Pinterest configuration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
