@@ -49,8 +49,10 @@
 	    'dashboard			; Depends on Emacs 25.3
             'diminish
 	    'dumb-jump
+            'editorconfig               ; for copilot
             'el-get                     ; for slack
             'emojify                    ; for slack
+            'f                          ; for copilot
             'filladapt
             'ivy
             'inf-ruby
@@ -144,6 +146,11 @@
   (setq mouse-sel-mode t)
   )
 
+;; Zap to char and backwards zap to char setup.
+(global-set-key (kbd "M-Z") (lambda (char)
+                         (interactive "cZap backwards to char:")
+                         (zap-to-char -1 char)))
+
 ;; ;; Try to get colors to display in M-x shell, e.g., in binding.pry
 ;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
 ;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
@@ -200,6 +207,19 @@
 ;;; But don't save frame/window configuration, just buffers (ex. for
 ;;; code search)
 (setq desktop-restore-frames nil)
+;; Use 'desktop-dirname to check the desktop file.
+
+;; Save more than 20 recentf files
+(use-package recentf
+  :init
+  (setq
+    recentf-save-file "~/.emacs.d/recentf"
+    recentf-max-saved-items 10000
+    recentf-max-menu-items 5000
+    )
+  (recentf-mode 1)
+  (run-at-time nil (* 5 60) 'recentf-save-list)
+  )
 
 ;; Deprecated; prefer toggle-frame-maximized.
 ;; ;;; Start in fullscreen
@@ -320,6 +340,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq undo-strong-limit 100663296) ; 96mb.
 (setq undo-outer-limit 1006632960) ; 960mb.
 
+
+
 ;; (use-package undo-fu)
 ;; undo-fu-allow-undo-in-region (nil)
 (use-package vundo)
@@ -357,6 +379,12 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; (define-key my/keys-keymap (kbd "C-c k") 'counsel-ag)
 (define-key my/keys-keymap (kbd "C-x l") 'counsel-locate)
 (define-key my/keys-keymap (kbd "C-S-o") 'counsel-rhythmbox)
+(define-key my/keys-keymap (kbd "C-c C-f C-f") 'counsel-fzf)
+;; Prevent connection closes from output overload.
+(add-to-list 'ivy-more-chars-alist '(counsel-git . 3))
+;; tramp-own-remote-path uses /bin/sh (.profile instead of .bash_profile)
+;; (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+
 
 (setq ivy-count-format "%d/%d ")
 ;;; ~/ is muscle memory, plus emacs autosaves have ~.  See
@@ -385,6 +413,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (define-key my/keys-keymap (kbd "C-x w d") 'shell-resync-dirs)
 
 (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+;; Useful for editing full filename in place during counsel-find-file
+(define-key my/keys-keymap (kbd "C-M-y") 'ivy-insert-current-full)
 ;; End Ivy integration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dashboard integration                                                  ;;
@@ -395,7 +425,19 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   :diminish dashboard-mode
   :config
   (setq dashboard-banner-logo-title "Welcome to emacs!")
-  ;; (setq dashboard-startup-banner "/Users/henryhu/Pictures/lake.jpg")
+  (setq dashboard-startup-banner
+        ;; Select a random startup filename.
+        (concat "/Users/hhu/Pictures/"
+                (nth (random 5)
+                     '(
+                       "IMG_1785.png"
+                       "IMG_3882.png"
+                       "IMG_4755.png"
+                       "IMG_4968.png"
+                       "IMG_5301.png"
+                       ))))
+  (setq dashboard-image-banner-max-width 1800)
+  (setq dashboard-image-banner-max-height 200)
   (setq dashboard-items '((recents  . 50)
                           (bookmarks . 10)))
   (dashboard-setup-startup-hook))	; Depends on emacs 25.3
@@ -794,6 +836,13 @@ It can also be nil, which means the first value in `recenter-positions'.")
         (progn
           (delete-file filename)
           (kill-buffer))))))
+
+(defun aws-cp-buffer-datausers (write-filename)
+    (interactive (list (read-string "aws s3 cp: " (buffer-name))))
+    (let ((command (format "aws s3 cp %s s3://datausers/hhu/%s" (buffer-name) write-filename)))
+      (if (or (not write-filename) (not (buffer-name)))
+        (message "Invalid aws s3 cp command! %s" command)
+        (shell-command command))))
 ;; End File-buffer management
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1047,14 +1096,14 @@ It can also be nil, which means the first value in `recenter-positions'.")
 (load "~/.emacs.d/stripemacs.el")
 
 ;; Use fd to find files by name in a local context
-(define-key my/keys-keymap (kbd "C-c C-f") #'counsel-fd-file-jump)
+(define-key my/keys-keymap (kbd "C-c C-f C-d") #'counsel-fd-file-jump)
 ;; Prevent projectile errors for empty submodules without .gitmodules
 (setq projectile-git-submodule-command "")
 
 ;; ;; Kill and replace the sexp at point, ending with the last yank at
 ;; ;; the top of the kill ring.
-(fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
-(define-key my/keys-keymap (kbd "C-M-y") 'replace-sexp-at-point)
+;; (fset 'replace-sexp-at-point [134217848 114 101 112 108 tab 114 backspace 115 101 120 112 tab return])
+;; (define-key my/keys-keymap (kbd "C-M-y") 'replace-sexp-at-point)
 
 ;; Kill the line at point, change buffer, rg the line, and return
 (fset 'move-line-into-other-buffer
@@ -1075,14 +1124,23 @@ It can also be nil, which means the first value in `recenter-positions'.")
  '(flycheck-python-pycompile-executable "python3")
  '(inhibit-startup-screen t)
  '(package-selected-packages
-   '(vundo undo-fu-session json-mode transpose-frame go-mode alert rainbow-delimiters tree-sitter-langs tree-sitter company-flow php-mode fzf counsel-fd fd-dired monokai-pro-theme link-hint link restart-emacs google-this nano-theme gitignore-snippets gitignore-templates helm-gitignore string-inflection inf-ruby ivy emojify counsel markdown-preview-mode sudo-edit dirvish which-key auctex protobuf-mode thrift scala-mode package ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text dumb-jump robe yaml-mode web-mode use-package prettier-js magit)))
+   '(copilot-chat helm-fuzzy-find bookmark+ bookmarks+ bookmarks-plus editorconfig dash f s vundo undo-fu-session json-mode transpose-frame go-mode alert rainbow-delimiters tree-sitter-langs tree-sitter company-flow php-mode fzf counsel-fd fd-dired monokai-pro-theme link-hint link restart-emacs google-this nano-theme gitignore-snippets gitignore-templates helm-gitignore string-inflection inf-ruby ivy emojify counsel markdown-preview-mode sudo-edit dirvish which-key auctex protobuf-mode thrift scala-mode package ein ansi-color sly-repl-ansi-color visual-regexp-steroids diminish filladapt pretty-symbols fira-code-mode emojify-logos package+ slack el-get auth-source-xoauth2 spell-fu csv csv-mode jupyter git-auto-commit-mode python-docstring exec-path-from-shell scheme-complete pdf-tools gh-md markdown-toc markdown-preview-eww markdown-mode+ flymd markdown-mode coffee-mode flycheck-package browse-kill-ring dashboard rg move-text dumb-jump robe yaml-mode web-mode use-package prettier-js magit))
+ '(warning-suppress-log-types
+   '(((copilot copilot-no-mode-indent))
+     ((copilot copilot-exceeds-max-char))
+     ((copilot copilot-no-mode-indent))
+     ((copilot copilot-no-mode-indent))))
+ '(warning-suppress-types
+   '(((copilot copilot-no-mode-indent))
+     ((copilot copilot-exceeds-max-char))
+     ((copilot copilot-no-mode-indent))
+     ((copilot copilot-no-mode-indent)))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(default ((t (:height 200 :family "Menlo")))))
-
 
 ;; end Autogen
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1121,6 +1179,10 @@ It can also be nil, which means the first value in `recenter-positions'.")
 
 ;; Treat word_word or wordWord as word boundaries
 (global-subword-mode 1) ;; (subword-mode 1) doesn't treat wordWord as boundary
+
+;; To investigate:
+;; cc-mode simply leaves `forward-sexp-function' nil. Setting that to nil
+;; in python-mode-hook makes python-mode behave "intuitively" for me
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Custom implemented python dumb jumping                                 ;;
@@ -1246,6 +1308,8 @@ It can also be nil, which means the first value in `recenter-positions'.")
 ;; Java settings                                                          ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; set default indent offset to 2 instead of 4, for java files.
+(add-hook 'java-mode-hook #'(lambda() (setq c-basic-offset 2)))
 (defun show-java-package ()
   "Show the full java package name in the minibuffer and kill it."
   (interactive)
@@ -1348,6 +1412,78 @@ It can also be nil, which means the first value in `recenter-positions'.")
        0 "%d"))
 (define-key my/keys-keymap (kbd "M-. M-j M-.") 'dumb-goto-java-symbol-at-point-in-import-file)
 (define-key my/keys-keymap (kbd "M-. M-j M-,") 'dumb-goto-java-symbol-at-point-in-this-file)
+
+;; taking snippets from https://ianyepan.github.io/posts/emacs-ide/
+
+;; LSP itself (with many features disabled to increase performance) ---------------------------
+
+;; (use-package lsp-mode
+;;   :hook ((
+;;           ;; c-mode                        ; clangd
+;;           ;; c++-mode                      ; clangd
+;;           ;; c-or-c++-mode                 ; clangd
+;;           java-mode                     ; eclipse-jdtls
+;;           ;; js-mode                       ; ts-ls (tsserver wrapper)
+;;           ;; js-jsx-mode                   ; ts-ls (tsserver wrapper)
+;;           ;; typescript-mode               ; ts-ls (tsserver wrapper)
+;;           ;; python-mode                   ; pyright
+;;           ;; web-mode                      ; ts-ls/HTML/CSS
+;;           ) . lsp-deferred)
+;;   :commands lsp
+;;   :config
+;;   (setq lsp-auto-guess-root t)
+;;   (setq lsp-log-io t)
+;;   (setq lsp-restart 'ignore)        ; 'interactive auto-restart ignore
+;;   (setq lsp-enable-symbol-highlighting t)
+;;   (setq lsp-enable-on-type-formatting nil)
+;;   (setq lsp-signature-auto-activate nil)
+;;   (setq lsp-signature-render-documentation nil)
+;;   (setq lsp-eldoc-hook nil)
+;;   (setq lsp-modeline-code-actions-enable nil)
+;;   (setq lsp-modeline-diagnostics-enable nil)
+;;   (setq lsp-headerline-breadcrumb-enable nil)
+;;   (setq lsp-semantic-tokens-enable t)
+;;   (setq lsp-enable-folding nil)
+;;   (setq lsp-enable-imenu nil) ; when t, works with lsp-ui-imenu, consult-imenu, etc .. just not super useful in my workflow
+;;   (setq lsp-enable-snippet t)
+;;   (setq read-process-output-max (* 1024 1024)) ;; 1MB
+;;   (setq lsp-idle-delay 0.5)
+;;   (setq lsp-enable-file-watchers nil) ;; disable watching files all over the workspace - see https://emacs-lsp.github.io/lsp-mode/page/file-watchers/
+;;   (setq lsp-enable-suggest-server-download nil) ;; don't offer to download servers all the time
+;;   )
+
+
+;; LSP servers ---------------------------
+
+;; (use-package lsp-pyright
+;;   :hook (python-mode . (lambda () (require 'lsp-pyright)))
+;;   :init (when (executable-find "python3")
+;;           (setq lsp-pyright-python-executable-cmd "python3")))
+
+;; LSP tramp remotes ---------------------------
+
+;; (lsp-register-client
+;;  (make-lsp-client
+;;   :new-connection (lsp-tramp-connection (lambda ()
+;;                                           (cons "pyright-langserver"
+;;                                                 lsp-pyright-langserver-command-args)))
+;;   :major-modes '(python-mode)
+;;   :remote? t
+;;   :server-id 'pyright-remote
+;;   :multi-root t
+;;   :priority 3
+;;   :initialization-options (lambda () (ht-merge (lsp-configuration-section "pyright")
+;;                                                (lsp-configuration-section "python")))
+;;   :initialized-fn (lambda (workspace)
+;;                     (with-lsp-workspace workspace
+;;                                         (lsp--set-configuration
+;;                                          (ht-merge (lsp-configuration-section "pyright")
+;;                                                    (lsp-configuration-section "python")))))
+;;   :download-server-fn (lambda (_client callback error-callback _update?)
+;;                         (lsp-package-ensure 'pyright callback error-callback))
+;;   :notification-handlers (lsp-ht ("pyright/beginProgress" 'lsp-pyright--begin-progress-callback)
+;;                                  ("pyright/reportProgress" 'lsp-pyright--report-progress-callback)
+;;                                  ("pyright/endProgress" 'lsp-pyright--end-progress-callback))))
 
 ;;End Java settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1647,10 +1783,29 @@ It can also be nil, which means the first value in `recenter-positions'.")
 (fset 'dk
    (kmacro-lambda-form [?\M-> ?d ?k return ?s ?o ?u ?r ?c ?e ?  ?. ?b ?a ?s ?h ?r ?c return] 0 "%d"))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; AI Assistants                                                          ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; ChatGPT
 (load "~/.emacs.d/chatgpt-arcana.el")
 (setq chatgpt-arcana-api-key (auth-source-pick-first-password
                               :host "openai.pinadmin.com"))
+
+;; Copilot
+;; Issue: json-rpc issue;; Resolution: update node v16->v18+
+(add-to-list 'load-path "~/.emacs.d/copilot.el")
+(require 'copilot)
+;; On Emacs version 30+
+;; (use-package copilot
+;;   :vc (:url "https://github.com/copilot-emacs/copilot.el"
+;;             :rev :newest
+;;             :branch "main"))
+(add-hook 'prog-mode-hook 'copilot-mode)
+(setq copilot-max-char 180000)
+(setq copilot-idle-delay 5)
+(define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
+(define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
 
 (fset 'convert-jupyter-param-to-python
    (kmacro-lambda-form [?\C-a ?\C-s ?	 ?\C-b ?\C-d ?  ?= ?  ?\' ?\C-e ?\' ?\C-n ?\C-a] 0 "%d"))
